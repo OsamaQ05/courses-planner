@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Course Planner</title>
+    <style>
+        .course-btn {
+            padding: 5px 10px;
+            margin-left: 10px;
+            background-color: lightgray;
+            border: none;
+            cursor: pointer;
+        }
+        .completed {
+            background-color: lightgreen;
+        }
+        .semester-column {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+    </style>
+    <script>
+        let selectedCourses = new Set();
+
+        function toggleCourse(code) {
+            const button = document.getElementById(code);
+            if (selectedCourses.has(code)) {
+                selectedCourses.delete(code);
+                button.classList.remove("completed");
+            } else {
+                selectedCourses.add(code);
+                button.classList.add("completed");
+            }
+            document.getElementById("completed").value = Array.from(selectedCourses).join(",");
+        }
+
+        function loadCourses() {
+            const major = document.getElementById("major").value;
+            fetch(`/get_courses?major=${major}`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById("courses-container");
+                    container.innerHTML = "";
+                    data.forEach(course => {
+                        const div = document.createElement("div");
+                        div.innerHTML = `${course.code} - ${course.name}
+    <button type="button" id="${course.code}" class="course-btn" onclick="toggleCourse('${course.code}')">Completed</button>`;
+                        container.appendChild(div);
+                    });
+                });
+        }
+
+        window.onload = function () {
+            if (document.getElementById("major")) {
+                loadCourses();
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>Course Planner</h1>
+
+    <form method="post">
+        <label>Select Major:</label>
+        <select name="major" id="major" onchange="loadCourses()">
+            <option value="0" {% if major_index == 0 %}selected{% endif %}>Computer Science</option>
+            <option value="1" {% if major_index == 1 %}selected{% endif %}>Computer Engineering</option>
+        </select>
+
+        <br><br>
+        <label>Number of Completed Semesters:</label>
+        <input type="number" name="completed_semesters" id="completed_semesters" min="0" max="15" required value="{{ completed_semesters or '' }}">
+
+        <h3>Select Completed Courses:</h3>
+        <div id="courses-container"></div>
+        <input type="hidden" id="completed" name="completed" value="{{ completed_raw or '' }}">
+
+        <br><br>
+        <input type="submit" value="Generate Plan">
+    </form>
+
+    {% if plan %}
+        <h2>Generated Plan:</h2>
+        <div class="flex-container">
+            {% for sem, courses in plan %}
+                <div class="semester-column">
+                    <strong>Semester {{ sem }}</strong>
+                    <ul>
+                        {% for course in courses %}
+                            <li>{{ course }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form method="post" action="/next_semester">
+            <input type="hidden" name="major" value="{{ major_index }}">
+            <input type="hidden" name="completed" value="{{ completed_raw }}">
+            <input type="hidden" name="registered" value="{{ first_semester_courses | join(',') }}">
+            <input type="submit" value="Generate Next Semester Plan">
+        </form>
+    {% endif %}
+
+    {% if next_output %}
+        <h3>Next Semester Plan:</h3>
+        <p>{{ next_output }}</p>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generated Plan</title>
+    <style>
+        .semester-column {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generated Plan</h1>
+    <div class="flex-container">
+        {% for sem, courses in plan %}
+            <div class="semester-column">
+                <strong>Semester {{ sem }}</strong>
+                <ul>
+                    {% for course in courses %}
+                        <li>{{ course }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    </div>
+    <form method="post" action="/next_semester">
+        <input type="hidden" name="major" value="{{ major_index }}">
+        <input type="hidden" name="completed" value="{{ completed_raw }}">
+        <input type="hidden" name="registered" value="{{ first_semester_courses | join(',') }}">
+        <input type="submit" value="Generate Next Semester Plan">
+    </form>
+    <br>
+    <a href="/">Back to Home</a>
+</body>
+</html>

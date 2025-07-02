@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Next Semester Schedule</title>
+    <style>
+        .schedule-list {
+            margin: 20px 0;
+            padding: 0;
+            list-style: none;
+        }
+        .schedule-list li {
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Next Semester Schedule</h1>
+    {% if next_plan %}
+        <ul class="schedule-list">
+            {% for item in next_plan %}
+                <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No bankai plan found.</p>
+    {% endif %}
+    <br>
+    <a href="/">Back to Home</a>
+</body>
+</html>
