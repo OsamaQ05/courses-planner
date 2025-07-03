@@ -1,7 +1,9 @@
 import gurobipy as gp
 from gurobipy import GRB
+import collections
+
 class CourseScheduler:
-    def __init__(self, courses, completed, required, max=18,min=12, semesters=15, starting=1):
+    def __init__(self, courses, completed, required, max=18,min=12, semesters=15, starting=1, semester_type=None):
         self.courses= courses
         self.completed_courses= completed
         self.required_courses= required
@@ -16,13 +18,15 @@ class CourseScheduler:
         self.x2= {} # for model 2
         self.y={}# for model 3
         self.starting_semester = starting 
+        self.semester_type = semester_type  # NEW: store current semester type
+        self.assign_importance()  # Always assign importance on initialization
 
         
   
 
    
     
-    def build_model(self,alpha=1.5, beta=0.5):
+    def build_model(self,alpha=3, beta=0.5, credit_target=15, penalty_weight=1.0, topo_penalty_weight=1.0):
         self.model = gp.Model("NextSemesterScheduler")
         self.model.setParam('OutputFlag', 1) 
         # here we add the varibles into the model, in this case they r the  remaing courses 
@@ -68,19 +72,54 @@ class CourseScheduler:
         '''
         # special cases constrain 
         total_credits =__builtins__.sum(self.courses[course]['credits'] for course in self.completed_courses)
-        special_cases = [i for i, j in self.courses.items() if 'min_credits' in j]
+        special_cases = [i for i, j in self.courses.items() if 'min_credits' in j and i in self.remaining_courses]
         for course in  special_cases:
-            if total_credits < self.courses[course]['min_credits']:
+            min_credits = self.courses[course]['min_credits']
+            if min_credits is not None and total_credits < min_credits:
                 self.model.addConstr(gp.quicksum(self.x[course, section] for section in self.courses[course]['sections']) == 0)
         
+        # Soft credit target penalty
+        deviation = self.model.addVar(lb=0, name="deviation")
+        self.model.addConstr(deviation >= total_credits_pre_sem - credit_target, name="dev_pos")
+        self.model.addConstr(deviation >= credit_target - total_credits_pre_sem, name="dev_neg")
+        
+        # Topological order penalty (soft constraint)
+        topo_order = self.topological_sort_courses(list(self.remaining_courses), list(self.completed_courses))
+        topo_index = {course: idx for idx, course in enumerate(topo_order)}
+        # For each course, penalize scheduling it later than its topo index (relative to the semester number)
+        # We'll use the first section as a proxy for when the course is scheduled (since only one section can be chosen)
+        soft_penalty = gp.quicksum(
+            self.x[(course, self.courses[course]['sections'][0])] * max(0, (1) - (topo_index[course] + 1))
+            for course in self.remaining_courses
+        )  # This is a placeholder; see below for a better approach
+        # Since we don't have semester numbers in this model, we can only encourage lower-index courses to be picked
+        # So, penalize not picking lower-index courses
+        soft_penalty = gp.quicksum(
+            (1 - gp.quicksum(self.x[(course, section)] for section in self.courses[course]['sections'])) * (topo_index[course] + 1)
+            for course in self.remaining_courses
+        )
+        # Objective
+        objective_expr = gp.quicksum(self.x[(c,s)] * (alpha * self.courses[c]['importance'] - beta * self.courses[c].get('weight', 1)) for c in self.remaining_courses for s in self.courses[c]['sections'])
+        self.model.setObjective(objective_expr - penalty_weight * deviation - topo_penalty_weight * soft_penalty, GRB.MAXIMIZE)
 
-        objective_expr = gp.quicksum(self.x[(c,s)] * (alpha * self.courses[c].get('importance', 1) - beta * self.courses[c].get('weight', 1)) for c in self.remaining_courses for s in self.courses[c]['sections'])
+        # Enforce semester availability constraint
+        if self.semester_type is not None:
+            for course in self.remaining_courses:
+                available_in = self.courses[course].get('available_in', ['fall', 'spring', 'summer'])
+                if self.semester_type.lower() not in [s.lower() for s in available_in]:
+                    for section in self.courses[course]['sections']:
+                        self.model.addConstr(self.x[(course, section)] == 0)
 
+        # Strict internship constraint: if ENGR399 or ENGR399(2) is scheduled, no other courses can be scheduled
+        for internship in ['ENGR399', 'ENGR399(2)']:
+            if internship in self.remaining_courses:
+                for int_sec in self.courses[internship]['sections']:
+                    for course in self.remaining_courses:
+                        if course == internship:
+                            continue
+                        for sec in self.courses[course]['sections']:
+                            self.model.addConstr(self.x[(course, sec)] <= 1 - self.x[(internship, int_sec)])
 
-        #m making the model to give the max amount of credits for now. I will discuess this with u guys
-                                   
-        #self.model.setObjective(total_credits,GRB.MAXIMIZE)
-        self.model.setObjective(objective_expr, GRB.MAXIMIZE)
         return self.model
 
 
@@ -138,7 +177,7 @@ class CourseScheduler:
 
     
                 
-    def build_model3(self, beta=1.5, alpha=0.5, gamma=0.25,delta=1):
+    def build_model3(self, beta=2, alpha=0.5, gamma=0.25,delta=1):
         self.model3 = gp.Model("FullPlanScheduler")
         self.model3.setParam('OutputFlag', 1)
     
@@ -151,6 +190,19 @@ class CourseScheduler:
         # must take all cources once 
         for course in self.remaining_courses:
             self.model3.addConstr(gp.quicksum(self.y[course, s] for s in semesters) == 1, name=f"take {course} once")
+
+        # ENFORCE INTERNSHIP SEMESTER RESTRICTIONS
+        internship_courses = {'ENGR399', 'ENGR399(2)'}
+        for course in self.remaining_courses:
+            for s in semesters:
+                if s in [9, 12]:
+                    # Only allow internship courses in semesters 9 and 12
+                    if course not in internship_courses:
+                        self.model3.addConstr(self.y[(course, s)] == 0, name=f"no_{course}_in_sem{s}")
+                else:
+                    # Only allow non-internship courses in other semesters
+                    if course in internship_courses:
+                        self.model3.addConstr(self.y[(course, s)] == 0, name=f"no_internship_{course}_in_sem{s}")
 
         # prerequsite constrain 
         for course in self.remaining_courses:
@@ -413,3 +465,184 @@ class CourseScheduler:
         print(f"avg load : {avg_weight}")
         print(f"Fifth year pen Value: {value}")
 
+    def topological_sort_courses(self, remaining, completed):
+        # Build graph
+        graph = collections.defaultdict(list)
+        in_degree = collections.defaultdict(int)
+        for c in remaining:
+            for prereq in self.courses[c]['prerequisites']:
+                if prereq in remaining or prereq in completed:
+                    graph[prereq].append(c)
+                    in_degree[c] += 1
+        # Courses with no prerequisites (or all prereqs completed)
+        queue = [c for c in remaining if in_degree[c] == 0 and all(pr in completed for pr in self.courses[c]['prerequisites'])]
+        sorted_courses = []
+        while queue:
+            node = queue.pop(0)
+            sorted_courses.append(node)
+            for neighbor in graph[node]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0 and all(pr in completed for pr in self.courses[neighbor]['prerequisites']):
+                    queue.append(neighbor)
+        # If there are cycles or unsatisfiable prereqs, append the rest
+        for c in remaining:
+            if c not in sorted_courses:
+                sorted_courses.append(c)
+        return sorted_courses
+
+    def get_semester_type(self, sem_num):
+        if sem_num % 3 == 1:
+            return 'Fall'
+        elif sem_num % 3 == 2:
+            return 'Spring'
+        else:
+            return 'Summer'
+
+    def debug_unscheduled_course(self, course_code, completed_courses):
+        print(f"\nDebugging course: {course_code} - {self.courses[course_code]['name']}")
+        for sem in range(2, self.total_semesters_remaining + 1):
+            sem_type = self.get_semester_type(sem)
+            prereqs = self.courses[course_code]['prerequisites']
+            available_in = self.courses[course_code].get('available_in', ["fall", "spring", "summer"])
+            min_cred = self.courses[course_code].get('min_credits')
+            reasons = []
+            if not all(pr in completed_courses for pr in prereqs):
+                reasons.append(f"missing prerequisites: {', '.join([pr for pr in prereqs if pr not in completed_courses])}")
+            if sem_type.lower() not in [s.lower() for s in available_in]:
+                reasons.append(f"not offered in {sem_type}")
+            if min_cred is not None:
+                total_cred = sum(self.courses[cc]['credits'] for cc in completed_courses)
+                if total_cred < min_cred:
+                    reasons.append(f"requires {min_cred} credits, has {total_cred}")
+            if reasons:
+                print(f"  Semester {sem} ({sem_type}): NOT ELIGIBLE ({'; '.join(reasons)})")
+            else:
+                print(f"  Semester {sem} ({sem_type}): ELIGIBLE")
+
+    def semester_by_semester_plan(self, credit_target=15, penalty_weight=1.0):
+        def get_semester_type(sem_num):
+            if sem_num % 3 == 1:
+                return 'Fall'
+            elif sem_num % 3 == 2:
+                return 'Spring'
+            else:
+                return 'Summer'
+
+        fixed_first_semester = ["GENS101", "ENGL101", "MATH111", "GENS100", "CHEM115"]
+        completed = set(fixed_first_semester)
+        all_semesters = [fixed_first_semester]
+        print("\n==============================")
+        print("  KU CS Degree Plan Scheduler  ")
+        print("==============================\n")
+        print("First Semester (fixed by registration office):")
+        for code in fixed_first_semester:
+            c = self.courses.get(code)
+            if c:
+                print(f"  - {code}: {c['name']} ({c['credits']} credits)")
+        total_credits = sum(self.courses[code]['credits'] for code in fixed_first_semester if code in self.courses)
+        print(f"  Total credits: {total_credits}\n")
+        sem = 2
+        while sem <= 12:
+            remaining = set(self.courses.keys()) - completed
+            sem_type = get_semester_type(sem)
+            max_credits = 6 if sem_type == 'Summer' else self.max_credits
+            min_credits = 0 if sem_type == 'Summer' else self.min_credits
+            print(f"\n--- Semester {sem} ({sem_type}) ---")
+            # Topological sort: strictly prioritize prerequisites
+            sorted_remaining = self.topological_sort_courses(remaining, completed)
+            # Only allow eligible courses (prereqs met, available, min_credits met)
+            eligible_courses = []
+            for c in sorted_remaining:
+                course = self.courses[c]
+                prereqs = course['prerequisites']
+                available_in = course.get('available_in', ["fall", "spring", "summer"])
+                min_cred = course.get('min_credits')
+                reasons = []
+                if not all(pr in completed for pr in prereqs):
+                    reasons.append(f"missing prerequisites: {', '.join([pr for pr in prereqs if pr not in completed])}")
+                if sem_type.lower() not in [s.lower() for s in available_in]:
+                    reasons.append(f"not offered in {sem_type}")
+                if min_cred is not None:
+                    total_cred = sum(self.courses[cc]['credits'] for cc in completed)
+                    if total_cred < min_cred:
+                        reasons.append(f"requires {min_cred} credits, has {total_cred}")
+                if not reasons:
+                    eligible_courses.append(c)
+            # Only pass eligible courses to the scheduler
+            semester_courses = []
+            if eligible_courses:
+                scheduler = CourseScheduler(self.courses, completed, set(eligible_courses), max_credits, min_credits, self.total_semesters_remaining, self.starting_semester, semester_type=sem_type)
+                scheduler.remaining_courses = set(eligible_courses)
+                scheduler.build_model(credit_target=credit_target, penalty_weight=penalty_weight)
+                scheduler.model.optimize()
+                if scheduler.model.Status == GRB.OPTIMAL:
+                    semester_courses = [c for c in eligible_courses if any(scheduler.x[(c, s)].X > 0.5 for s in self.courses[c]['sections'])]
+                    completed.update(semester_courses)
+            all_semesters.append(semester_courses)
+            sem += 1
+        # Print the full plan
+        print("==============================")
+        print("     Full Degree Plan Output    ")
+        print("==============================\n")
+        total_credits_all = 0
+        for i, sem_courses in enumerate(all_semesters, 1):
+            sem_type = get_semester_type(i)
+            if not sem_courses:
+                print(f"Semester {i} ({sem_type}): No courses scheduled.\n")
+                continue
+            course_lines = []
+            for c in sem_courses:
+                course = self.courses.get(c)
+                if course:
+                    course_lines.append(f"  - {c}: {course['name']} ({course['credits']} credits)")
+            sem_credits = sum(self.courses[c]['credits'] for c in sem_courses if c in self.courses)
+            total_credits_all += sem_credits
+            print(f"Semester {i} ({sem_type}):")
+            for line in course_lines:
+                print(line)
+            print(f"  Total credits: {sem_credits}\n")
+        print("==============================")
+        print(f"Total credits earned: {total_credits_all}")
+        print(f"Number of semesters used: {len([s for s in all_semesters if s])}")
+        print("==============================\n")
+        # If there are still remaining courses, print them
+        remaining = set(self.courses.keys()) - completed
+        if remaining:
+            print("The following courses could not be scheduled due to constraints:")
+            for c in remaining:
+                print(f"  - {c}: {self.courses[c]['name']}")
+            # Debug each unscheduled course
+            for c in remaining:
+                self.debug_unscheduled_course(c, completed)
+
+def load_courses_dict_from_json(json_path: str) -> dict:
+    """Load courses from a JSON file and return a dict-of-dicts for legacy CourseScheduler."""
+    import json
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    courses = {}
+    for code, info in data.items():
+        # Default to one section 'A' if not present
+        sections = info.get('sections', ['A'])
+        # Default year to 1 if null
+        year = info.get('year', 1)
+        if year is None:
+            year = 1
+        courses[code] = {
+            'name': info['name'],
+            'credits': info['credits'],
+            'prerequisites': info['prerequisites'],
+            'weight': info.get('weight', 1),
+            'year': year,
+            'sections': sections,
+            'importance': info.get('importance', 1),
+            'min_credits': info.get('min_credits'),
+            'available_in': info.get('available_in'),
+        }
+    return courses
+
+# Usage example
+if __name__ == "__main__":
+    courses = load_courses_dict_from_json("courses.json")
+    scheduler = CourseScheduler(courses, set(), set(courses.keys()))
+    scheduler.semester_by_semester_plan(credit_target=15, penalty_weight=1.0)
