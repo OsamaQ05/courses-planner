@@ -67,7 +67,7 @@ def next_semester():
     courses = plans[major_index]
 
     scheduler = CourseScheduler(
-        courses=time_data,
+        courses=courses,
         completed=completed_set,
         required=set(courses.keys())
     )
