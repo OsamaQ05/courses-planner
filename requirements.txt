@@ -1,0 +1,24 @@
+# Core web framework
+Flask==3.0.0
+
+# Database and REST API extensions
+Flask-SQLAlchemy==3.1.1
+Flask-RESTful==0.3.10
+
+# Optimization solver
+gurobipy==12.0.2
+
+# Standard library modules (built-in, no installation needed)
+# - unittest
+# - unittest.mock
+# - sys
+# - os
+# - json
+# - io
+
+# Development and testing dependencies
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Optional: For better development experience
+python-dotenv==1.0.0 

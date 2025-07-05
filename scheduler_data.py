@@ -39,9 +39,9 @@ cs_courses = {
     'GENS400': {'name': 'Enhancing Employability & Readiness', 'credits': 1, 'prerequisites': ['GENS300'], 'weight': 1, 'year': 4},
     'ENGR399' : {'name' : 'internship 1' , 'credits': 1, 'prerequisites': [], 'weight': 1, 'year': 3, 'min_credits': 60,'available_in' : {'summer'}},
     'ENGR399(2)' : {'name' : 'internship 2' , 'credits': 1, 'prerequisites': ['ENGR399'], 'weight': 1, 'year': 4, 'min_credits' : 90, 'available_in' : {'summer'}},
-    'HUMAXXX' : {'name' : 'HUMA course' , 'credits': 3, 'prerequisites': [], 'weight': 2},
-    'BUXXX' : {'name' : 'BUSS course' , 'credits': 3, 'prerequisites': [], 'weight': 2},
-    'HUMA123' : {'name' : 'UAE studies' , 'credits': 3, 'prerequisites': [], 'weight': 2},
+    'HUMAXXX' : {'name' : 'HUMA course' , 'credits': 3, 'prerequisites': [], 'weight': 2, 'year': 2},
+    'BUXXX' : {'name' : 'BUSS course' , 'credits': 3, 'prerequisites': [], 'weight': 2, 'year': 2},
+    'HUMA123' : {'name' : 'UAE studies' , 'credits': 3, 'prerequisites': [], 'weight': 2, 'year': 2},
 }
 ce_courses = {
     'GENS101': {'name': 'Grand Challenges', 'credits': 4, 'prerequisites': [], 'weight': 1, 'year': 1, },
@@ -84,9 +84,9 @@ ce_courses = {
     'GENS400': {'name': 'Enhancing Employability & Readiness', 'credits': 1, 'prerequisites': ['GENS300'], 'weight': 1, 'year': 4},
     'ENGR399' : {'name' : 'internship 1' , 'credits': 1, 'prerequisites': [], 'weight': 1, 'year': 3, 'min_credits': 60,'available_in' : {'summer'}},
     'ENGR399(2)' : {'name' : 'internship 2' , 'credits': 1, 'prerequisites': ['ENGR399'], 'weight': 1, 'year': 4, 'min_credits' : 90, 'available_in' : {'summer'}},
-    'HUMAXXX' : {'name' : 'HUMA course' , 'credits': 3, 'prerequisites': [], 'weight': 2},
-    'BUXXX' : {'name' : 'BUSS course' , 'credits': 3, 'prerequisites': [], 'weight': 2},
-    'HUMA123' : {'name' : 'UAE studies' , 'credits': 3, 'prerequisites': [], 'weight': 2},
+    'HUMAXXX' : {'name' : 'HUMA course' , 'credits': 3, 'prerequisites': [], 'weight': 2, 'year': 2},
+    'BUXXX' : {'name' : 'BUSS course' , 'credits': 3, 'prerequisites': [], 'weight': 2, 'year': 2},
+    'HUMA123' : {'name' : 'UAE studies' , 'credits': 3, 'prerequisites': [], 'weight': 2, 'year': 2},
 }
 
 

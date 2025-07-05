@@ -1,31 +1,511 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Next Semester Schedule</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Semester Schedule - Course Planner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .schedule-list {
-            margin: 20px 0;
+        * {
+            margin: 0;
             padding: 0;
-            list-style: none;
+            box-sizing: border-box;
         }
-        .schedule-list li {
-            margin-bottom: 8px;
-            font-size: 1.1em;
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            position: relative;
+        }
+
+        .header h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            border-radius: 2px;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        }
+
+        .header p {
+            color: rgba(226, 232, 240, 0.8);
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-top: 1rem;
+        }
+
+        .card {
+            background: rgba(15, 15, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease-out;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(102, 126, 234, 0.3),
+                0 0 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .course-card {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.8), rgba(15, 15, 35, 0.8));
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            animation: slideInRight 0.6s ease-out;
+        }
+
+        .course-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            opacity: 0.8;
+        }
+
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(102, 126, 234, 0.3),
+                0 0 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .course-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .course-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #cbd5e0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .course-title::before {
+            content: "📖";
+            font-size: 1.5rem;
+        }
+
+        .course-credits {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .schedule-info {
+            background: rgba(15, 15, 35, 0.6);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .schedule-info:hover {
+            transform: translateX(5px);
+            border-color: #667eea;
+            box-shadow: 
+                0 5px 15px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(102, 126, 234, 0.3),
+                0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .schedule-time {
+            font-weight: 600;
+            color: #cbd5e0;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .schedule-days {
+            color: #a0aec0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .schedule-location {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(26, 26, 46, 0.6);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 10px 25px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(102, 126, 234, 0.3),
+                0 0 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-label {
+            color: #a0aec0;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 10px 25px rgba(102, 126, 234, 0.4),
+                0 0 0 1px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 50%, #1a202c 100%);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 
+                0 10px 25px rgba(74, 85, 104, 0.4),
+                0 0 0 1px rgba(74, 85, 104, 0.5);
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(245, 101, 101, 0.2), rgba(229, 62, 62, 0.2));
+            color: #feb2b2;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #e53e3e;
+            animation: shake 0.5s ease-in-out;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(102, 126, 234, 0.2);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.8); }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .schedule-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Next Semester Schedule</h1>
-    {% if next_plan %}
-        <ul class="schedule-list">
-            {% for item in next_plan %}
-                <li>{{ item }}</li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No bankai plan found.</p>
-    {% endif %}
-    <br>
-    <a href="/">Back to Home</a>
+    <div class="container">
+        <div class="header">
+            <h1>Next Semester Schedule</h1>
+            <p>Optimized course schedule with time conflicts resolved</p>
+        </div>
+
+        {% if error %}
+            <div class="error-message">
+                {{ error }}
+            </div>
+        {% endif %}
+
+        {% if schedule %}
+            <div class="card fade-in">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">{{ total_courses }}</div>
+                        <div class="stat-label">Total Courses</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ total_credits }}</div>
+                        <div class="stat-label">Total Credits</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ total_sections }}</div>
+                        <div class="stat-label">Total Sections</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">{{ total_labs }}</div>
+                        <div class="stat-label">Total Labs</div>
+                    </div>
+                </div>
+
+                <div class="schedule-grid">
+                    {% for course in schedule %}
+                        <div class="course-card">
+                            <div class="course-header">
+                                <div class="course-title">{{ course.code }}</div>
+                                <div class="course-credits">{{ course.credits }} Credits</div>
+                            </div>
+                            
+                            {% if course.section %}
+                                <div class="schedule-info">
+                                    <div class="schedule-location">{{ course.section.location or 'TBD' }}</div>
+                                    <div class="schedule-time">{{ course.section.time or 'TBD' }}</div>
+                                    <div class="schedule-days">{{ course.section.days or 'TBD' }}</div>
+                                </div>
+                            {% endif %}
+                            
+                            {% if course.lab %}
+                                <div class="schedule-info">
+                                    <div class="schedule-location">{{ course.lab.location or 'TBD' }}</div>
+                                    <div class="schedule-time">{{ course.lab.time or 'TBD' }}</div>
+                                    <div class="schedule-days">{{ course.lab.days or 'TBD' }}</div>
+                                </div>
+                            {% endif %}
+                            
+                            <div style="margin-top: 1rem;">
+                                <strong style="color: #cbd5e0;">Course Name:</strong>
+                                <div style="color: #a0aec0; margin-top: 0.25rem;">{{ course.name }}</div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="/" class="btn btn-secondary">Generate New Schedule</a>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Generating your optimal schedule...</p>
+        </div>
+    </div>
+
+    <script>
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+    </script>
 </body>
 </html>

@@ -1,57 +1,852 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Course Planner</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Planner - Academic Schedule Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .course-btn {
-            padding: 5px 10px;
-            margin-left: 10px;
-            background-color: lightgray;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            line-height: 1.6;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+            position: relative;
+        }
+
+        .header h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            border-radius: 2px;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.8);
+        }
+
+        .header p {
+            color: rgba(226, 232, 240, 0.8);
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-top: 1rem;
+        }
+
+        .card {
+            background: rgba(15, 15, 35, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease-out;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #667eea, transparent);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(102, 126, 234, 0.3),
+                0 0 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+            color: #cbd5e0;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(26, 26, 46, 0.8);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            font-size: 1rem;
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 
+                0 0 0 3px rgba(102, 126, 234, 0.1),
+                0 0 20px rgba(102, 126, 234, 0.3);
+            background: rgba(26, 26, 46, 0.9);
+        }
+
+        .form-control option {
+            background: #1a1a2e;
+            color: #e2e8f0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
             border: none;
+            padding: 1rem 2.5rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .completed {
-            background-color: lightgreen;
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
         }
-        .semester-column {
-            margin: 10px;
-            padding: 10px;
-            border: 1px solid #ddd;
+
+        .btn:hover::before {
+            left: 100%;
         }
-        .flex-container {
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 10px 25px rgba(102, 126, 234, 0.4),
+                0 0 0 1px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 50%, #1a202c 100%);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 
+                0 10px 25px rgba(74, 85, 104, 0.4),
+                0 0 0 1px rgba(74, 85, 104, 0.5);
+        }
+
+        .year-groups {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .year-group {
+            background: rgba(26, 26, 46, 0.6);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .year-group::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--year-color), transparent);
+            opacity: 0.7;
+        }
+
+        .year-group.freshman { --year-color: #48bb78; }
+        .year-group.sophomore { --year-color: #4299e1; }
+        .year-group.junior { --year-color: #ed8936; }
+        .year-group.senior { --year-color: #e53e3e; }
+
+        .year-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--year-color);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             display: flex;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .year-title::before {
+            content: var(--year-icon);
+            font-size: 1.5rem;
+        }
+
+        .year-group.freshman .year-title::before { content: "🌱"; }
+        .year-group.sophomore .year-title::before { content: "🌿"; }
+        .year-group.junior .year-title::before { content: "🌳"; }
+        .year-group.senior .year-title::before { content: "🎓"; }
+
+        .semester-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .semester-section {
+            background: rgba(15, 15, 35, 0.4);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .semester-section:hover {
+            border-color: var(--year-color);
+            box-shadow: 0 0 10px rgba(var(--year-color-rgb), 0.2);
+        }
+
+        .semester-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--year-color);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .semester-title::before {
+            content: var(--semester-icon);
+            font-size: 1rem;
+        }
+
+        .semester-section.fall .semester-title::before { content: "🍂"; }
+        .semester-section.spring .semester-title::before { content: "🌸"; }
+        .semester-section.summer .semester-title::before { content: "☀️"; }
+
+        .semester-section.fall { --semester-color: #f56565; --semester-color-rgb: 245, 101, 101; }
+        .semester-section.spring { --semester-color: #48bb78; --semester-color-rgb: 72, 187, 120; }
+        .semester-section.summer { --semester-color: #ed8936; --semester-color-rgb: 237, 137, 54; }
+
+        .courses-grid {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .course-item {
+            background: rgba(15, 15, 35, 0.8);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            transition: all 0.4s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .course-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--year-color), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .course-item:hover::before {
+            opacity: 0.1;
+        }
+
+        .course-item:hover {
+            transform: translateY(-2px) scale(1.01);
+            border-color: var(--year-color);
+            box-shadow: 
+                0 8px 20px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(var(--year-color-rgb), 0.5),
+                0 0 15px rgba(var(--year-color-rgb), 0.3);
+        }
+
+        .year-group.freshman .course-item { --year-color: #48bb78; --year-color-rgb: 72, 187, 120; }
+        .year-group.sophomore .course-item { --year-color: #4299e1; --year-color-rgb: 66, 153, 225; }
+        .year-group.junior .course-item { --year-color: #ed8936; --year-color-rgb: 237, 137, 54; }
+        .year-group.senior .course-item { --year-color: #e53e3e; --year-color-rgb: 229, 62, 62; }
+
+        .course-item.completed {
+            background: linear-gradient(135deg, rgba(72, 187, 120, 0.2), rgba(56, 178, 172, 0.2));
+            border-color: #48bb78;
+            color: #9ae6b4;
+        }
+
+        .course-item.completed::after {
+            content: "✓";
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #48bb78;
+            text-shadow: 0 0 10px rgba(72, 187, 120, 0.5);
+        }
+
+        .course-code {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+            color: #cbd5e0;
+        }
+
+        .course-name {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            color: #a0aec0;
+            line-height: 1.3;
+        }
+
+        .course-details {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--year-color);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        .course-item:hover .course-details {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .course-details h4 {
+            color: var(--year-color);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .course-details p {
+            font-size: 0.8rem;
+            color: #a0aec0;
+            margin-bottom: 0.25rem;
+        }
+
+        .plan-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .semester-card {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.8), rgba(15, 15, 35, 0.8));
+            border-radius: 16px;
+            padding: 1.5rem;
+            border-left: 4px solid #667eea;
+            animation: slideInRight 0.6s ease-out;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .semester-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(102, 126, 234, 0.3),
+                0 0 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .course-list {
+            list-style: none;
+        }
+
+        .course-list li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+            font-size: 0.9rem;
+            color: #a0aec0;
+            transition: all 0.3s ease;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .course-list li::before {
+            content: "•";
+            color: #667eea;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .course-list li:last-child {
+            border-bottom: none;
+        }
+
+        .course-list li:hover {
+            color: #e2e8f0;
+            transform: translateX(5px);
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(245, 101, 101, 0.2), rgba(229, 62, 62, 0.2));
+            color: #feb2b2;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #e53e3e;
+            animation: shake 0.5s ease-in-out;
+            backdrop-filter: blur(10px);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(102, 126, 234, 0.2);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.8); }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .year-groups {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .plan-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 1200px) and (min-width: 769px) {
+            .year-groups {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
         }
     </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Course Planner</h1>
+            <p>Generate your optimal academic schedule with intelligent course planning</p>
+        </div>
+
+        <div class="card">
+            <form method="post" id="plannerForm">
+                <div class="form-group">
+                    <label for="major">Select Major</label>
+                    <select name="major" id="major" class="form-control" onchange="loadCourses()">
+                        <option value="0" {% if major_index == 0 %}selected{% endif %}>Computer Science</option>
+                        <option value="1" {% if major_index == 1 %}selected{% endif %}>Computer Engineering</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="completed_semesters">Number of Completed Semesters</label>
+                    <input type="number" name="completed_semesters" id="completed_semesters" 
+                           class="form-control" min="0" max="15" required 
+                           value="{{ completed_semesters or '' }}" placeholder="Enter number of semesters">
+                </div>
+
+                <div class="form-group">
+                    <label>Select Completed Courses by Year</label>
+                    <div id="courses-container" class="year-groups"></div>
+                    <input type="hidden" id="completed" name="completed" value="{{ completed_raw or '' }}">
+                </div>
+
+                <button type="submit" class="btn" onclick="showLoading()">
+                    Generate Plan
+                </button>
+            </form>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Generating your optimal schedule...</p>
+        </div>
+
+        {% if plan %}
+            <div class="card fade-in">
+                <h2 style="margin-bottom: 1.5rem; color: #cbd5e0;">Generated Plan</h2>
+                <div class="plan-container">
+                    {% for sem, courses in plan %}
+                        <div class="semester-card">
+                            <div class="semester-title">Semester {{ sem }}</div>
+                            <ul class="course-list">
+                                {% for course in courses %}
+                                    <li>{{ course }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <form method="post" action="/next_semester" style="margin-top: 2rem; text-align: center;">
+                    <input type="hidden" name="major" value="{{ major_index }}">
+                    <input type="hidden" name="completed" value="{{ completed_raw }}">
+                    <input type="hidden" name="registered" value="{{ first_semester_courses | join(',') }}">
+                    <button type="submit" class="btn btn-secondary">
+                        Generate Next Semester Plan
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+
+        {% if next_output %}
+            <div class="card fade-in">
+                <h3 style="margin-bottom: 1rem; color: #cbd5e0;">Next Semester Plan</h3>
+                <p>{{ next_output }}</p>
+            </div>
+        {% endif %}
+    </div>
+
     <script>
         let selectedCourses = new Set();
 
         function toggleCourse(code) {
-            const button = document.getElementById(code);
+            const item = document.getElementById(code);
             if (selectedCourses.has(code)) {
                 selectedCourses.delete(code);
-                button.classList.remove("completed");
+                item.classList.remove("completed");
             } else {
                 selectedCourses.add(code);
-                button.classList.add("completed");
+                item.classList.add("completed");
             }
             document.getElementById("completed").value = Array.from(selectedCourses).join(",");
         }
 
+        function getYearGroup(course) {
+            const year = course.year || 1;
+            if (year === 1) return 'freshman';
+            if (year === 2) return 'sophomore';
+            if (year === 3) return 'junior';
+            return 'senior';
+        }
+
+        // Hardcoded course placement mapping
+        const coursePlacement = {
+            // Freshman Year
+            'GENS101': { year: 'freshman', semester: 'fall' },
+            'ENGL101': { year: 'freshman', semester: 'fall' },
+            'MATH111': { year: 'freshman', semester: 'fall' },
+            'CHEM115': { year: 'freshman', semester: 'fall' },
+            'GENS100': { year: 'freshman', semester: 'fall' },
+            'ENGL102': { year: 'freshman', semester: 'spring' },
+            'MATH112': { year: 'freshman', semester: 'spring' },
+            'PHYS121': { year: 'freshman', semester: 'spring' },
+            'COSC114': { year: 'freshman', semester: 'spring' },
+            'HUMAXXX': { year: 'freshman', semester: 'summer' },
+            
+            // Sophomore Year
+            'COSC101': { year: 'sophomore', semester: 'fall' },
+            'ECCE230': { year: 'sophomore', semester: 'fall' },
+            'MATH204': { year: 'sophomore', semester: 'fall' },
+            'MATH242': { year: 'sophomore', semester: 'fall' },
+            'ENGR202': { year: 'sophomore', semester: 'fall' },
+            'COSC201': { year: 'sophomore', semester: 'spring' },
+            'ECCE342': { year: 'sophomore', semester: 'spring' },
+            'MATH232': { year: 'sophomore', semester: 'spring' },
+            'MATH214': { year: 'sophomore', semester: 'spring' },
+            'MATH234': { year: 'sophomore', semester: 'spring' },
+            'HUMA123': { year: 'sophomore', semester: 'summer' },
+            
+            // Junior Year
+            'BUSS322': { year: 'junior', semester: 'fall' },
+            'COSC301': { year: 'junior', semester: 'fall' },
+            'ECCE336': { year: 'junior', semester: 'fall' },
+            'ECCE354': { year: 'junior', semester: 'fall' },
+            'ECCE356': { year: 'junior', semester: 'fall' },
+            'COSC312': { year: 'junior', semester: 'spring' },
+            'COSC320': { year: 'junior', semester: 'spring' },
+            'COSC330': { year: 'junior', semester: 'spring' },
+            'COSC340': { year: 'junior', semester: 'spring' },
+            'GENS300': { year: 'junior', semester: 'spring' },
+            'ENGR399': { year: 'junior', semester: 'summer' },
+            
+            // Senior Year
+            'COSC497': { year: 'senior', semester: 'fall' },
+            'ECCE434': { year: 'senior', semester: 'fall' },
+            'TECH_ELECTIVE_5': { year: 'senior', semester: 'fall' },
+            'TECH_ELECTIVE_1': { year: 'senior', semester: 'fall' },
+            'TECH_ELECTIVE_2': { year: 'senior', semester: 'fall' },
+            'TECH_ELECTIVE_3': { year: 'senior', semester: 'spring' },
+            'TECH_ELECTIVE_4': { year: 'senior', semester: 'spring' },
+            'COSC498': { year: 'senior', semester: 'spring' },
+            'BUXXX': { year: 'senior', semester: 'spring' },
+            'GENS400': { year: 'senior', semester: 'spring' },
+            'ENGR399(2)': { year: 'senior', semester: 'summer' }
+        };
+
+        function getCoursePlacement(courseCode) {
+            return coursePlacement[courseCode] || { year: 'freshman', semester: 'fall' };
+        }
+
         function loadCourses() {
             const major = document.getElementById("major").value;
+            const container = document.getElementById("courses-container");
+            
+            // Show loading state
+            container.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Loading courses...</p></div>';
+            
             fetch(`/get_courses?major=${major}`)
                 .then(response => response.json())
                 .then(data => {
-                    const container = document.getElementById("courses-container");
                     container.innerHTML = "";
+                    
+                    // Group courses by year
+                    const yearGroups = {
+                        freshman: [],
+                        sophomore: [],
+                        junior: [],
+                        senior: []
+                    };
+
                     data.forEach(course => {
-                        const div = document.createElement("div");
-                        div.innerHTML = `${course.code} - ${course.name}
-    <button type="button" id="${course.code}" class="course-btn" onclick="toggleCourse('${course.code}')">Completed</button>`;
-                        container.appendChild(div);
+                        const placement = getCoursePlacement(course.code);
+                        if (!yearGroups[placement.year]) {
+                            yearGroups[placement.year] = [];
+                        }
+                        yearGroups[placement.year].push(course);
                     });
+
+                    // Create year group containers
+                    Object.entries(yearGroups).forEach(([year, courses]) => {
+                        if (courses.length > 0) {
+                            const yearDiv = document.createElement("div");
+                            yearDiv.className = `year-group ${year}`;
+                            
+                            const yearTitle = document.createElement("div");
+                            yearTitle.className = "year-title";
+                            yearTitle.textContent = year.charAt(0).toUpperCase() + year.slice(1) + " Year";
+                            
+                            const semesterSections = document.createElement("div");
+                            semesterSections.className = "semester-sections";
+                            
+                            // Create semester sections
+                            ['fall', 'spring', 'summer'].forEach(semester => {
+                                const semesterSection = document.createElement("div");
+                                semesterSection.className = `semester-section ${semester}`;
+                                
+                                const semesterTitle = document.createElement("div");
+                                semesterTitle.className = "semester-title";
+                                semesterTitle.textContent = semester.charAt(0).toUpperCase() + semester.slice(1);
+                                
+                                const coursesGrid = document.createElement("div");
+                                coursesGrid.className = "courses-grid";
+                                
+                                // Filter courses for this semester using hardcoded placement
+                                const semesterCourses = courses.filter(course => {
+                                    const placement = getCoursePlacement(course.code);
+                                    return placement.semester === semester;
+                                });
+                                
+                                semesterCourses.forEach(course => {
+                                    const div = document.createElement("div");
+                                    div.className = "course-item";
+                                    div.id = course.code;
+                                    div.onclick = () => toggleCourse(course.code);
+                                    div.innerHTML = `
+                                        <div class="course-code">${course.code}</div>
+                                        <div class="course-name">${course.name}</div>
+                                        <div class="course-details">
+                                            <h4>${course.code} - ${course.name}</h4>
+                                            <p><strong>Credits:</strong> ${course.credits}</p>
+                                            <p><strong>Weight:</strong> ${course.weight}</p>
+                                            <p><strong>Year:</strong> ${course.year || 'Not specified'}</p>
+                                            <p><strong>Available:</strong> ${course.available_in ? course.available_in.join(', ') : 'Fall'}</p>
+                                            ${course.prerequisites && course.prerequisites.length > 0 ? 
+                                                `<p><strong>Prerequisites:</strong> ${course.prerequisites.join(', ')}</p>` : 
+                                                '<p><strong>Prerequisites:</strong> None</p>'}
+                                        </div>
+                                    `;
+                                    coursesGrid.appendChild(div);
+                                });
+                                
+                                semesterSection.appendChild(semesterTitle);
+                                semesterSection.appendChild(coursesGrid);
+                                semesterSections.appendChild(semesterSection);
+                            });
+                            
+                            yearDiv.appendChild(yearTitle);
+                            yearDiv.appendChild(semesterSections);
+                            container.appendChild(yearDiv);
+                        }
+                    });
+                })
+                .catch(error => {
+                    container.innerHTML = '<p style="color: #feb2b2;">Error loading courses. Please try again.</p>';
                 });
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('plannerForm').style.display = 'none';
         }
 
         window.onload = function () {
@@ -60,55 +855,5 @@
             }
         };
     </script>
-</head>
-<body>
-    <h1>Course Planner</h1>
-
-    <form method="post">
-        <label>Select Major:</label>
-        <select name="major" id="major" onchange="loadCourses()">
-            <option value="0" {% if major_index == 0 %}selected{% endif %}>Computer Science</option>
-            <option value="1" {% if major_index == 1 %}selected{% endif %}>Computer Engineering</option>
-        </select>
-
-        <br><br>
-        <label>Number of Completed Semesters:</label>
-        <input type="number" name="completed_semesters" id="completed_semesters" min="0" max="15" required value="{{ completed_semesters or '' }}">
-
-        <h3>Select Completed Courses:</h3>
-        <div id="courses-container"></div>
-        <input type="hidden" id="completed" name="completed" value="{{ completed_raw or '' }}">
-
-        <br><br>
-        <input type="submit" value="Generate Plan">
-    </form>
-
-    {% if plan %}
-        <h2>Generated Plan:</h2>
-        <div class="flex-container">
-            {% for sem, courses in plan %}
-                <div class="semester-column">
-                    <strong>Semester {{ sem }}</strong>
-                    <ul>
-                        {% for course in courses %}
-                            <li>{{ course }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endfor %}
-        </div>
-
-        <form method="post" action="/next_semester">
-            <input type="hidden" name="major" value="{{ major_index }}">
-            <input type="hidden" name="completed" value="{{ completed_raw }}">
-            <input type="hidden" name="registered" value="{{ first_semester_courses | join(',') }}">
-            <input type="submit" value="Generate Next Semester Plan">
-        </form>
-    {% endif %}
-
-    {% if next_output %}
-        <h3>Next Semester Plan:</h3>
-        <p>{{ next_output }}</p>
-    {% endif %}
 </body>
 </html>
