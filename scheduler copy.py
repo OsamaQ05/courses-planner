@@ -1,5 +1,4 @@
-import gurobipy as gp
-from gurobipy import GRB
+import pulp
 import collections
 
 class CourseScheduler:
@@ -40,13 +39,12 @@ class CourseScheduler:
         Used in the greedy, semester-by-semester plan.
         """
         # Initialize Gurobi model
-        self.model = gp.Model("NextSemesterScheduler")
-        self.model.setParam('OutputFlag', 1) 
+        self.model = pulp.LpProblem("NextSemesterScheduler", pulp.LpMaximize)
         self.x= {} 
         # Add binary variables for each course-section pair
         for course in self.remaining_courses:
             for section in self.courses[course]['sections']:
-                self.x[(course, section)] = self.model.addVar(vtype= GRB.BINARY, name= f"x_{course}_{section}")
+                self.x[(course, section)] = pulp.LpVariable(f"x_{course}_{section}", cat='Binary')
 
         # Add prerequisite constraints
         for i in self.remaining_courses:
@@ -55,42 +53,42 @@ class CourseScheduler:
                 if j in self.completed_courses:
                     continue 
                 for section in self.courses[i]['sections']:
-                    self.model.addConstr(self.x[(i, section)] <= 0)
+                    self.model += self.x[(i, section)] <= 0
 
         # Only one section per course can be taken
         for course in self.remaining_courses:
-            self.model.addConstr(gp.quicksum(self.x[course,section] for section in self.courses[course]['sections']) <=1)
+            self.model += pulp.lpSum(self.x[course,section] for section in self.courses[course]['sections']) <=1
             
         # Credit constraints for the semester
-        total_credits_pre_sem= gp.quicksum(self.courses[x]['credits']* self.x[x,y] for x in self.remaining_courses for y in self.courses[x]['sections']) 
-        self.model.addConstr(total_credits_pre_sem<= self.max_credits)
+        total_credits_pre_sem= pulp.lpSum(self.courses[x]['credits']* self.x[x,y] for x in self.remaining_courses for y in self.courses[x]['sections']) 
+        self.model += total_credits_pre_sem<= self.max_credits
         min_credits = self.min_credits if self.min_credits is not None else 0
-        self.model.addConstr(total_credits_pre_sem >= min_credits)
+        self.model += total_credits_pre_sem >= min_credits
 
         # Special cases: courses with min_credits requirements
-        total_credits = sum(self.courses[course]['credits'] for course in self.completed_courses)
+        total_credits = pulp.lpSum(self.courses[course]['credits'] for course in self.completed_courses)
         special_cases = [i for i, j in self.courses.items() if 'min_credits' in j and i in self.remaining_courses]
         for course in  special_cases:
             min_credits = self.courses[course]['min_credits']
             if min_credits is not None and total_credits < min_credits:
-                self.model.addConstr(gp.quicksum(self.x[course, section] for section in self.courses[course]['sections']) == 0)
+                self.model += pulp.lpSum(self.x[course, section] for section in self.courses[course]['sections']) == 0
         
         # Soft credit target penalty
-        deviation = self.model.addVar(lb=0, name="deviation")
-        self.model.addConstr(deviation >= total_credits_pre_sem - credit_target, name="dev_pos")
-        self.model.addConstr(deviation >= credit_target - total_credits_pre_sem, name="dev_neg")
+        deviation = pulp.LpVariable("deviation", lb=0)
+        self.model += deviation >= total_credits_pre_sem - credit_target
+        self.model += deviation >= credit_target - total_credits_pre_sem
         
         # Topological order penalty (soft constraint)
         topo_order = self.topological_sort_courses(list(self.remaining_courses), list(self.completed_courses))
         topo_index = {course: idx for idx, course in enumerate(topo_order)}
         # Penalize not picking lower-index (prerequisite) courses
-        soft_penalty = gp.quicksum(
-            (1 - gp.quicksum(self.x[(course, section)] for section in self.courses[course]['sections'])) * (topo_index[course] + 1)
+        soft_penalty = pulp.lpSum(
+            (1 - pulp.lpSum(self.x[(course, section)] for section in self.courses[course]['sections'])) * (topo_index[course] + 1)
             for course in self.remaining_courses
         )
         # Objective: maximize importance, minimize workload, penalize deviation and late prerequisites
-        objective_expr = gp.quicksum(self.x[(c,s)] * (alpha * self.courses[c]['importance'] - beta * self.courses[c].get('weight', 1)) for c in self.remaining_courses for s in self.courses[c]['sections'])
-        self.model.setObjective(objective_expr - penalty_weight * deviation - topo_penalty_weight * soft_penalty, GRB.MAXIMIZE)
+        objective_expr = pulp.lpSum(self.x[(c,s)] * (alpha * self.courses[c]['importance'] - beta * self.courses[c].get('weight', 1)) for c in self.remaining_courses for s in self.courses[c]['sections'])
+        self.model += objective_expr - penalty_weight * deviation - topo_penalty_weight * soft_penalty
 
         # Enforce semester availability constraint
         if self.semester_type is not None:
@@ -98,7 +96,7 @@ class CourseScheduler:
                 available_in = self.courses[course].get('available_in', ['fall', 'spring', 'summer'])
                 if self.semester_type.lower() not in [s.lower() for s in available_in]:
                     for section in self.courses[course]['sections']:
-                        self.model.addConstr(self.x[(course, section)] == 0)
+                        self.model += self.x[(course, section)] == 0
 
         # Strict internship constraint: if ENGR399 or ENGR399(2) is scheduled, no other courses can be scheduled
         for internship in ['ENGR399', 'ENGR399(2)']:
@@ -108,7 +106,7 @@ class CourseScheduler:
                         if course == internship:
                             continue
                         for sec in self.courses[course]['sections']:
-                            self.model.addConstr(self.x[(course, sec)] <= 1 - self.x[(internship, int_sec)])
+                            self.model += self.x[(course, sec)] <= 1 - self.x[(internship, int_sec)]
         return self.model
 
 
@@ -119,8 +117,7 @@ class CourseScheduler:
         This model resolves time conflicts between sections/labs and ensures one section/lab per course is chosen.
         Used for detailed time/section scheduling after course selection.
         """
-        self.model2 = gp.Model("Time Scheduler")
-        self.model2.setParam("OutputFlag", 1)
+        self.model2 = pulp.LpProblem("Time Scheduler", pulp.LpMaximize)
         
         self.x2 = {}
         
@@ -131,28 +128,18 @@ class CourseScheduler:
         
             # add  sections
             for section in sections:
-                self.x2[(course, section)] = self.model2.addVar(
-                    vtype=GRB.BINARY, name=f"x_{course}_sec_{section}"
-                )
+                self.x2[(course, section)] = pulp.LpVariable(f"x_{course}_sec_{section}", cat='Binary')
         
             # add lanbs
             for lab in labs:
-                self.x2[(course, lab)] = self.model2.addVar(
-                    vtype=GRB.BINARY, name=f"x_{course}_lab_{lab}"
-                )
+                self.x2[(course, lab)] = pulp.LpVariable(f"x_{course}_lab_{lab}", cat='Binary')
     
             # one section consterain
-            self.model2.addConstr(
-                gp.quicksum(self.x2[(course, sec)] for sec in sections) == 1,
-                name=f"choose_one_section_{course}"
-            )
+            self.model2 += pulp.lpSum(self.x2[(course, sec)] for sec in sections) == 1
     
             # lab constrain 
             if labs:
-                self.model2.addConstr(
-                    gp.quicksum(self.x2[(course, lab)] for lab in labs) == 1,
-                    name=f"choose_one_lab_{course}"
-                )
+                self.model2 += pulp.lpSum(self.x2[(course, lab)] for lab in labs) == 1
         
         # time conflict 
         all_vars = list(self.x2.keys())
@@ -161,34 +148,35 @@ class CourseScheduler:
             for j in range(i + 1, len(all_vars)):
                 c2, t2 = all_vars[j]
                 if self.does_conflict(t1, t2):
-                    self.model2.addConstr(
-                        self.x2[(c1, t1)] + self.x2[(c2, t2)] <= 1,
-                        name=f"time_conflict_{c1}_{t1}_vs_{c2}_{t2}"
-                    )
+                    self.model2 += self.x2[(c1, t1)] + self.x2[(c2, t2)] <= 1
         return self.model2
     
 
 
     
                 
-    def build_model3(self, beta=2, alpha=0.5, gamma=0.25,delta=1):
+    def build_model3(self, alpha=2, beta=0.5, gamma=1.0, topo_penalty_weight=1.0):
         """
         Build and return a Gurobi model for scheduling all courses over all semesters (full degree plan).
         This model assigns each course to a semester, respecting prerequisites, credit limits, course availability, and special constraints (e.g., internships).
         Used for generating a complete multi-semester plan in one optimization.
         """
-        self.model3 = gp.Model("FullPlanScheduler")
-        self.model3.setParam('OutputFlag', 1)
+        # Prerequisite integrity check
+        for course in self.remaining_courses:
+            for prereq in self.courses[course]['prerequisites']:
+                if prereq not in self.completed_courses and prereq not in self.remaining_courses:
+                    print(f"WARNING: Prerequisite {prereq} for course {course} is neither completed nor scheduled. This may cause prerequisite logic errors.")
+        self.model3 = pulp.LpProblem("FullPlanScheduler", pulp.LpMinimize)
     
         semesters = list(range(self.starting_semester, self.total_semesters_remaining + 1))  
-        self.y = {}  
+        self.y = {}
     
         for course in self.remaining_courses:
             for sem in semesters:
-                self.y[(course, sem)] = self.model3.addVar(vtype=GRB.BINARY, name=f"y_{course}_sem{sem}")
+                self.y[(course, sem)] = pulp.LpVariable(f"y_{course}_sem{sem}", cat='Binary')
         # must take all cources once 
         for course in self.remaining_courses:
-            self.model3.addConstr(gp.quicksum(self.y[course, s] for s in semesters) == 1, name=f"take {course} once")
+            self.model3 += pulp.lpSum(self.y[course, s] for s in semesters) == 1
 
         # ENFORCE INTERNSHIP SEMESTER RESTRICTIONS
         internship_courses = {'ENGR399', 'ENGR399(2)'}
@@ -197,11 +185,11 @@ class CourseScheduler:
                 if s in [9, 12]:
                     # Only allow internship courses in semesters 9 and 12
                     if course not in internship_courses:
-                        self.model3.addConstr(self.y[(course, s)] == 0, name=f"no_{course}_in_sem{s}")
+                        self.model3 += self.y[(course, s)] == 0
                 else:
                     # Only allow non-internship courses in other semesters
                     if course in internship_courses:
-                        self.model3.addConstr(self.y[(course, s)] == 0, name=f"no_internship_{course}_in_sem{s}")
+                        self.model3 += self.y[(course, s)] == 0
 
         # FORCE INTERNSHIPS IF ELIGIBLE
         # ENGR399 in 9, ENGR399(2) in 12
@@ -215,10 +203,10 @@ class CourseScheduler:
                     prereq_met = False
             if min_credits is not None:
                 # Credits up to semester 9
-                credits_up_to_9 = gp.quicksum(self.courses[c]['credits'] * self.y[c, t] for c in self.remaining_courses for t in semesters if t < 9)
-                self.model3.addConstr(self.y['ENGR399', 9] * min_credits <= credits_up_to_9, name='force_engr399_min_credits')
+                credits_up_to_9 = pulp.lpSum(self.courses[c]['credits'] * self.y[c, t] for c in self.remaining_courses for t in semesters if t < 9)
+                self.model3 += self.y['ENGR399', 9] * min_credits <= credits_up_to_9
             if prereq_met:
-                self.model3.addConstr(self.y['ENGR399', 9] == 1, name='force_engr399_in_9')
+                self.model3 += self.y['ENGR399', 9] == 1
         if 'ENGR399(2)' in self.remaining_courses:
             # Check if prerequisites and min_credits are met for ENGR399(2) in 12
             prereqs = self.courses['ENGR399(2)']['prerequisites']
@@ -228,32 +216,32 @@ class CourseScheduler:
                 if pr in self.remaining_courses:
                     prereq_met = False
             if min_credits is not None:
-                credits_up_to_12 = gp.quicksum(self.courses[c]['credits'] * self.y[c, t] for c in self.remaining_courses for t in semesters if t < 12)
-                self.model3.addConstr(self.y['ENGR399(2)', 12] * min_credits <= credits_up_to_12, name='force_engr3992_min_credits')
+                credits_up_to_12 = pulp.lpSum(self.courses[c]['credits'] * self.y[c, t] for c in self.remaining_courses for t in semesters if t < 12)
+                self.model3 += self.y['ENGR399(2)', 12] * min_credits <= credits_up_to_12
             if prereq_met:
-                self.model3.addConstr(self.y['ENGR399(2)', 12] == 1, name='force_engr3992_in_12')
+                self.model3 += self.y['ENGR399(2)', 12] == 1
 
         # prerequsite constrain 
         for course in self.remaining_courses:
             prereqs = self.courses[course]['prerequisites']
             for prereq in prereqs:
                 if prereq in self.remaining_courses:
-                    self.model3.addConstr(gp.quicksum(s * self.y[(course, s)] for s in semesters) >= gp.quicksum(s * self.y[(prereq, s)] for s in semesters)+1, name="prereqsite")
+                    self.model3 += pulp.lpSum(s * self.y[(course, s)] for s in semesters) >= pulp.lpSum(s * self.y[(prereq, s)] for s in semesters)+1
         #credits per sem constrain
 
         for s in semesters:
-            total_credits = gp.quicksum(self.y[(course, s)] * self.courses[course]['credits']for course in self.remaining_courses)
+            total_credits = pulp.lpSum(self.y[(course, s)] * self.courses[course]['credits']for course in self.remaining_courses)
             if s%3==0:# so if summer....
-                 self.model3.addConstr(total_credits <= 6, name=f"max credits for sem {s}") 
+                 self.model3 += total_credits <= 6
             elif s>12:# for the fifth year, max is 18 but min is 0 
-                 self.model3.addConstr(total_credits <= self.max_credits, name=f"max credits for sem {s}")
+                 self.model3 += total_credits <= self.max_credits
             else:  
-                self.model3.addConstr(total_credits <= self.max_credits, name=f"max credits for sem {s}")
-                self.model3.addConstr(total_credits >= self.min_credits, name=f"min credits for sem {s}")# 2+2=4
+                self.model3 += total_credits <= self.max_credits
+                self.model3 += total_credits >= self.min_credits
 
         # restricted cources constrain e.g sdp
         
-        credits_up_to_semester = {s: gp.quicksum(self.courses[c]['credits'] * self.y[c, t] for c in self.remaining_courses for t in semesters if t < s) for s in semesters }
+        credits_up_to_semester = {s: pulp.lpSum(self.courses[c]['credits'] * self.y[c, t] for c in self.remaining_courses for t in semesters if t < s) for s in semesters }
 
         special_cases = [i for i, j in self.courses.items() if 'min_credits' in j]
         for course in special_cases:
@@ -262,15 +250,13 @@ class CourseScheduler:
                 continue
             for s in semesters:
                 if (course, s) in self.y:
-                    self.model3.addConstr(
-                        self.y[course, s] * required_credits <= credits_up_to_semester[s],
-                        name=f"restricted course {course} in sem {s}")
+                    self.model3 += self.y[course, s] * required_credits <= credits_up_to_semester[s]
                         
         # u cant take courses with internships 
         if 'ENGR399' in self.remaining_courses:
-            self.model3.addConstrs((gp.quicksum(self.y[c, s] for c in self.remaining_courses if c != 'ENGR399') <= 100 * (1 - self.y['ENGR399', s])for s in semesters))
+            self.model3 += pulp.lpSum(self.y[c, s] for c in self.remaining_courses if c != 'ENGR399') <= 100 * (1 - self.y['ENGR399', s])
         if 'ENGR399(2)' in self.remaining_courses:
-            self.model3.addConstrs((gp.quicksum(self.y[c, s] for c in self.remaining_courses if c != 'ENGR399(2)') <= 100 * (1 - self.y['ENGR399(2)', s])for s in semesters))
+            self.model3 += pulp.lpSum(self.y[c, s] for c in self.remaining_courses if c != 'ENGR399(2)') <= 100 * (1 - self.y['ENGR399(2)', s])
 
 
         # availabilty constrain 
@@ -281,18 +267,18 @@ class CourseScheduler:
             not_available_in = offered_sems - set(self.courses[course]['available_in'])
             for s in semesters:
                 if s % 3 == 1 and 'fall' in not_available_in:
-                    self.model3.addConstr(self.y[course, s] == 0)
+                    self.model3 += self.y[course, s] == 0
                 elif s % 3 == 2 and 'spring' in not_available_in:
-                    self.model3.addConstr(self.y[course, s] == 0)
+                    self.model3 += self.y[course, s] == 0
                 elif s % 3 == 0 and 'summer' in not_available_in:
-                    self.model3.addConstr(self.y[course, s] == 0)
+                    self.model3 += self.y[course, s] == 0
             
 
        
        
         # IMPORTANCE 
         #so since its multiplied by s (semester), to get the lowest score pssible it takes high importance courses sooner 
-        importance_term = gp.quicksum(
+        importance_term = pulp.lpSum(
             self.y[(course, s)] *self.courses[course].get('importance', 1) * s
             for course in self.remaining_courses
             for s in semesters
@@ -302,46 +288,45 @@ class CourseScheduler:
         # to minimize this, it would rather make the (taken semester - prefered semster) = 0 or as close to 0 as possible 
         penalties = {    (c, s): abs(self.year_of_semester(s) - self.courses[c].get('year', self.year_of_semester(s)))  for c in self.remaining_courses
                 for s in semesters  }
-        penalty_term = gp.quicksum(
+        penalty_term = pulp.lpSum(
             self.y[(course, s)] *  penalties[(course, s)]
             for course in self.remaining_courses
             for s in semesters if s<13
         )
-        fifth_year_penalty = gp.quicksum(
-            self.y[(course, s) ]*s
-            for course in self.remaining_courses
-            for s in semesters if s > 12
-        )
 
+        # TOPOLOGICAL SORT SOFT CONSTRAINT
+        topo_order = self.topological_sort_courses(list(self.remaining_courses), list(self.completed_courses))
+        topo_index = {course: idx for idx, course in enumerate(topo_order)}
+        topological_penalty = pulp.lpSum(
+            self.y[(course, s)] * s * (topo_index[course] + 1)
+            for course in self.remaining_courses
+            for s in semesters
+        )
 
         # BALANCE WORKLOAD 
-        # here since we r looking for balacning the overload over all semesters, we will want to make the load similar, so we calcute the 'variance' and try to minimze that 
         taken_sems = [s for s in semesters if s % 3 != 0]
+        avg_weight = pulp.lpSum(self.y[(c, s)] * self.courses[c]['weight'] for s in taken_sems for c in self.remaining_courses) / len(taken_sems)
+        # Absolute deviation penalty for workload balance
+        deviation_vars = {}
+        for s in taken_sems:
+            workload_s = pulp.lpSum(self.y[c, s] * self.courses[c]['weight'] for c in self.remaining_courses)
+            deviation = pulp.LpVariable(f"workload_dev_sem_{s}", lowBound=0)
+            self.model3 += deviation >= workload_s - avg_weight
+            self.model3 += deviation >= avg_weight - workload_s
+            deviation_vars[s] = deviation
+        workload_balance_term = pulp.lpSum(deviation_vars[s] for s in taken_sems)
 
-    
-        avg_weight = gp.quicksum(  self.y[(c, s)] * self.courses[c]['weight']  for s in taken_sems for c in self.remaining_courses) / len(taken_sems)
-         
-        workload_term = gp.quicksum((gp.quicksum(self.y[c, s] * self.courses[c]['weight'] for c in self.remaining_courses) - avg_weight) ** 2 for s in taken_sems)
-        
-
-        mean_weight = gp.quicksum(self.y[(c,s)] * self.courses[c]['weight'] for c in self.remaining_courses for s in semesters if s%3!=0)/ (len(semesters)- len(semesters)//3)
-        workload_balance_term = gp.quicksum(
-            (gp.quicksum(self.y[c, s] * self.courses[c].get('weight', 1) for c in self.remaining_courses) - mean_weight) ** 2
-            for s in semesters if s%3!=0
-        )
-
-        objective_expr = alpha*importance_term + beta*workload_balance_term +   gamma* penalty_term + delta*fifth_year_penalty 
-        self.model3.setObjective(objective_expr, GRB.MINIMIZE)
+        objective_expr = alpha*importance_term + beta*workload_balance_term + gamma* penalty_term + topo_penalty_weight * topological_penalty
+        self.model3 += objective_expr
 
         # REQUIRE AT LEAST 130 CREDITS FOR GRADUATION
-        total_credits_all = gp.quicksum(self.y[(course, s)] * self.courses[course]['credits'] for course in self.remaining_courses for s in semesters)
-        self.model3.addConstr(total_credits_all >= 130, name="min_total_credits_for_graduation")
-
+        # total_credits_all = pulp.lpSum(self.y[(course, s)] * self.courses[course]['credits'] for course in self.remaining_courses for s in semesters)
+        # self.model3 += total_credits_all >= 130
         return self.model3
         
         
     '''
-        objective_expr = gp.quicksum(
+        objective_expr = pulp.lpSum(
         (self.y[(course, s)] * s * (beta * self.courses[course].get('weight', 1) - alpha * self.courses[course].get('importance', 1) )- gamma * penalties[(course, s)])
         for course in self.remaining_courses 
         for s in semesters
@@ -460,49 +445,68 @@ class CourseScheduler:
     def get_full_solution(self):
         """
         Print the full solution for the multi-semester plan (model3), including course assignments and objective terms.
+        Output format matches semester_by_semester_plan.
         """
-        if not hasattr(self, 'model3') or self.model3.Status != GRB.OPTIMAL:
+        if not hasattr(self, 'model3') or pulp.LpStatus[self.model3.status] != "Optimal":
             print("Model3 is not solved or not optimal.")
             return
         semester_courses = {s: [] for s in range(1, self.total_semesters_remaining + 1)}
         semester_credits = {s: 0 for s in range(1, self.total_semesters_remaining + 1)}
         cumulative_credits = 0
+        course_semester = {}
         for (course, s), var in self.y.items():
-            if var.X > 0.5:
+            if var.varValue > 0.5:
                 semester_courses[s].append(course)
                 semester_credits[s] += self.courses[course]['credits']
-        for s in range(1, self.total_semesters_remaining + 1):
+                course_semester[course] = s
+        print("==============================")
+        print("     Full Degree Plan Output    ")
+        print("==============================\n")
+        total_credits_all = 0
+        for s in range(2, self.total_semesters_remaining + 1):
             courses = semester_courses[s]
+            sem_type = self.get_semester_type(s)
             if not courses:
+                print(f"Semester {s} ({sem_type}): No courses scheduled.\n")
                 continue
-            course_names = [self.courses[c]['name'] for c in courses]
+            course_lines = []
+            for c in courses:
+                course = self.courses.get(c)
+                if course:
+                    course_lines.append(f"  - {c}: {course['name']} ({course['credits']} credits)")
             sem_credits = semester_credits[s]
-            cumulative_credits += sem_credits
-            print(f"Semester {s}: {', '.join(course_names)} | Credits = {sem_credits} \n\n")
-        semesters = list(range(self.starting_semester, self.total_semesters_remaining + 1))  
-        importance_term = sum(
-            self.y[(course, s)].X * self.courses[course].get('importance', 1) * s
-            for course in self.remaining_courses
-            for s in semesters
-        )
-        penalty_term = sum(
-            self.y[(course, s)].X * abs(self.year_of_semester(s) - self.courses[course].get('year', self.year_of_semester(s)))
-            for course in self.remaining_courses
-            for s in semesters
-        )
-        taken_sems = { s for s in semesters if s % 3 != 0 }
-        avg_weight = sum(self.y[(c, s)].X * self.courses[c]['weight'] for s in taken_sems for c in self.remaining_courses) / len(taken_sems)
-        workload_term = sum((sum(self.y[c, s].X * self.courses[c].get('weight', 1) for c in self.remaining_courses) - avg_weight) ** 2 for s in taken_sems)
-        value = sum(
-            self.y[(course, s)].X * s
-            for course in self.remaining_courses
-            for s in semesters if s > 12
-        )
-        print(f"Importance Term Value: {importance_term}")
-        print(f"Penalty Term Value: {penalty_term}")
-        print(f"Workload Variance Term Value: {workload_term}")
-        print(f"avg load : {avg_weight}")
-        print(f"Fifth year pen Value: {value}")
+            total_credits_all += sem_credits
+            print(f"Semester {s} ({sem_type}):")
+            for line in course_lines:
+                print(line)
+            print(f"  Total credits: {sem_credits}\n")
+        print("==============================")
+        print(f"Total credits earned: {total_credits_all}")
+        print(f"Number of semesters used: {len([s for s in semester_courses.values() if s])}")
+        print("==============================\n")
+        # Prerequisite debug print
+        print("Prerequisite schedule check:")
+        for course, s in course_semester.items():
+            prereqs = self.courses[course]['prerequisites']
+            if prereqs:
+                for pr in prereqs:
+                    pr_sem = course_semester.get(pr, None)
+                    if pr_sem is not None:
+                        print(f"  {course} (semester {s}) <- {pr} (semester {pr_sem})")
+                    else:
+                        print(f"  {course} (semester {s}) <- {pr} (NOT SCHEDULED)")
+        # If there are still remaining courses, print them
+        all_scheduled = set()
+        for course_list in semester_courses.values():
+            all_scheduled.update(course_list)
+        remaining = self.remaining_courses - all_scheduled
+        if remaining:
+            print("The following courses could not be scheduled due to constraints:")
+            for c in remaining:
+                print(f"  - {c}: {self.courses[c]['name']}")
+            # Debug each unscheduled course
+            for c in remaining:
+                self.debug_unscheduled_course(c, all_scheduled)
 
     def topological_sort_courses(self, remaining, completed):
         """
@@ -590,9 +594,9 @@ class CourseScheduler:
                 scheduler = CourseScheduler(self.courses, completed, set(eligible_courses), max_credits, min_credits, self.total_semesters_remaining, self.starting_semester, semester_type=sem_type)
                 scheduler.remaining_courses = set(eligible_courses)
                 scheduler.build_model(credit_target=credit_target, penalty_weight=penalty_weight)
-                scheduler.model.optimize()
-                if scheduler.model.Status == GRB.OPTIMAL:
-                    semester_courses = [c for c in eligible_courses if any(scheduler.x[(c, s)].X > 0.5 for s in self.courses[c]['sections'])]
+                scheduler.model.solve()
+                if pulp.LpStatus[scheduler.model.status] == "Optimal":
+                    semester_courses = [c for c in eligible_courses if any(scheduler.x[(c, s)].varValue > 0.5 for s in self.courses[c]['sections'])]
                     completed.update(semester_courses)
             all_semesters.append(semester_courses)
             sem += 1
@@ -667,11 +671,26 @@ def load_courses_dict_from_json(json_path: str) -> dict:
 
 # Usage example
 if __name__ == "__main__":
+    fixed_first_semester = ["GENS101", "ENGL101", "MATH111", "GENS100", "CHEM115"]
     courses = load_courses_dict_from_json("courses.json")
-    scheduler = CourseScheduler(courses, set(), set(courses.keys()))
-    # Test model 3 (full plan)
+    completed = set(fixed_first_semester)
+    required = set(courses.keys())
+    scheduler = CourseScheduler(courses, completed, required)
+    print("Courses passed to model3 (remaining courses):", scheduler.remaining_courses)
     model3 = scheduler.build_model3()
-    model3.optimize()
+    result_status = model3.solve()
+    print("Solver status:", pulp.LpStatus[model3.status])
+    # Print fixed first semester
+    print("\n==============================")
+    print("  KU CS Degree Plan Scheduler  ")
+    print("==============================\n")
+    print("First Semester (fixed by registration office):")
+    for code in fixed_first_semester:
+        c = courses.get(code)
+        if c:
+            print(f"  - {code}: {c['name']} ({c['credits']} credits)")
+    total_credits = sum(courses[code]['credits'] for code in fixed_first_semester if code in courses)
+    print(f"  Total credits: {total_credits}\n")
     scheduler.get_full_solution()
     # Uncomment below to test greedy semester-by-semester plan
     # scheduler.semester_by_semester_plan(credit_target=15, penalty_weight=1.0)

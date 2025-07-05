@@ -2,7 +2,7 @@
   "GENS101": {"name": "Grand Challenges", "credits": 4, "prerequisites": [], "weight": 1, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
   "ENGL101": {"name": "Academic English I", "credits": 3, "prerequisites": [], "weight": 2, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
   "MATH111": {"name": "Calculus I", "credits": 4, "prerequisites": [], "weight": 2, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
-  "CHEM115": {"name": "General Chemistry I", "credits": 4, "prerequisites": [], "weight": 2, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
+  "CHEM115": {"name": "General Chemistry I", "credits": 4, "prerequisites": [], "weight": 3, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
   "GENS100": {"name": "Academic Development & Success", "credits": 1, "prerequisites": [], "weight": 1, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
   "ENGL102": {"name": "Academic English II", "credits": 3, "prerequisites": ["ENGL101"], "weight": 2, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
   "MATH112": {"name": "Calculus II", "credits": 4, "prerequisites": ["MATH111"], "weight": 3, "year": 1, "available_in": ["fall", "spring", "summer"], "min_credits": null},
@@ -39,7 +39,7 @@
   "GENS400": {"name": "Enhancing Employability & Readiness", "credits": 1, "prerequisites": ["GENS300"], "weight": 1, "year": 4, "available_in": ["fall", "spring", "summer"], "min_credits": null},
   "ENGR399": {"name": "internship 1", "credits": 1, "prerequisites": [], "weight": 1, "year": 3, "available_in": ["summer"], "min_credits": 60},
   "ENGR399(2)": {"name": "internship 2", "credits": 1, "prerequisites": ["ENGR399"], "weight": 1, "year": 4, "available_in": ["summer"], "min_credits": 90},
-  "HUMAXXX": {"name": "HUMA course", "credits": 3, "prerequisites": [], "weight": 3, "year": null, "available_in": ["fall", "spring", "summer"], "min_credits": null},
-  "BUXXX": {"name": "BUSS course", "credits": 3, "prerequisites": [], "weight": 3, "year": null, "available_in": ["fall", "spring", "summer"], "min_credits": null},
-  "HUMA123": {"name": "UAE studies", "credits": 3, "prerequisites": [], "weight": 3, "year": null, "available_in": ["fall", "spring", "summer"], "min_credits": null}
+  "HUMAXXX": {"name": "HUMA course", "credits": 3, "prerequisites": [], "weight": 3, "year": null, "available_in": ["fall", "spring", "summer"], "min_credits": null, "importance": 0},
+  "BUXXX": {"name": "BUSS course", "credits": 3, "prerequisites": [], "weight": 3, "year": null, "available_in": ["fall", "spring", "summer"], "min_credits": null, "importance": 0},
+  "HUMA105": {"name": "UAE studies", "credits": 3, "prerequisites": [], "weight": 3, "year": null, "available_in": ["fall", "spring", "summer"], "min_credits": null, "importance": 0}
 } 
