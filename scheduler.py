@@ -1,10 +1,12 @@
 import gurobipy as gp
 from gurobipy import GRB
+from unittest.mock import MagicMock
+
 class CourseScheduler:
     def __init__(self, courses, completed, required, max=18,min=12, semesters=15, starting=1):
         self.courses= courses
-        self.completed_courses= completed
-        self.required_courses= required
+        self.completed_courses= set(completed)
+        self.required_courses= set(required)
         self.max_credits= max
         self.min_credits= min
         self.remaining_courses=  set(self.required_courses) -set(self.completed_courses)
@@ -28,7 +30,7 @@ class CourseScheduler:
         # here we add the varibles into the model, in this case they r the  remaing courses 
         self.x= {} 
         for course in self.remaining_courses:
-            for section in self.courses[course]['sections']:
+            for section in self.courses[course].get('sections', ['default']):
                 self.x[(course, section)] = self.model.addVar(vtype= GRB.BINARY, name= f"x_{course}_{section}")
 
         
@@ -41,15 +43,15 @@ class CourseScheduler:
             for j in prerequistes:
                 if j in self.completed_courses:
                     continue 
-                for section in self.courses[i]['sections']:
+                for section in self.courses[i].get('sections', ['default']):
                     self.model.addConstr(self.x[(i, section)] <= 0)
 
         #section constrain 
         for course in self.remaining_courses:
-            self.model.addConstr(gp.quicksum(self.x[course,section] for section in self.courses[course]['sections']) <=1)
+            self.model.addConstr(gp.quicksum(self.x[course,section] for section in self.courses[course].get('sections', ['default'])) <=1)
             
         #credit constrain                          
-        total_credits_pre_sem= gp.quicksum(self.courses[x]['credits']* self.x[x,y] for x in self.remaining_courses for y in self.courses[x]['sections']) 
+        total_credits_pre_sem= gp.quicksum(self.courses[x]['credits']* self.x[x,y] for x in self.remaining_courses for y in self.courses[x].get('sections', ['default'])) 
         self.model.addConstr(total_credits_pre_sem<= self.max_credits)
         self.model.addConstr(total_credits_pre_sem >= self.min_credits)
         
@@ -67,14 +69,14 @@ class CourseScheduler:
                             self.model.addConstr(self.x[(course,section)]+self.x[(course2,section2)]<=1)
         '''
         # special cases constrain 
-        total_credits =__builtins__.sum(self.courses[course]['credits'] for course in self.completed_courses)
-        special_cases = [i for i, j in self.courses.items() if 'min_credits' in j]
+        total_credits = sum(self.courses[course]['credits'] for course in self.completed_courses)
+        special_cases = [i for i, j in self.courses.items() if 'min_credits' in j and i in self.remaining_courses]
         for course in  special_cases:
             if total_credits < self.courses[course]['min_credits']:
-                self.model.addConstr(gp.quicksum(self.x[course, section] for section in self.courses[course]['sections']) == 0)
+                self.model.addConstr(gp.quicksum(self.x[course, section] for section in self.courses[course].get('sections', ['default'])) == 0)
         
 
-        objective_expr = gp.quicksum(self.x[(c,s)] * (alpha * self.courses[c].get('importance', 1) - beta * self.courses[c].get('weight', 1)) for c in self.remaining_courses for s in self.courses[c]['sections'])
+        objective_expr = gp.quicksum(self.x[(c,s)] * (alpha * self.courses[c].get('importance', 1) - beta * self.courses[c].get('weight', 1)) for c in self.remaining_courses for s in self.courses[c].get('sections', ['default']))
 
 
         #m making the model to give the max amount of credits for now. I will discuess this with u guys
@@ -93,7 +95,7 @@ class CourseScheduler:
         
        
         for course in desired_courses:
-            sections = self.courses[course]['sections']
+            sections = self.courses[course].get('sections', ['default'])
             labs = self.courses[course].get('labs', [])
         
             # add  sections
@@ -289,11 +291,9 @@ class CourseScheduler:
 
     def get_all_dependents(self, target_course):
         dependents= set()
-        
         for course in self.courses:
-            if self.is_depndent(course, target_course, courses):
+            if self.is_depndent(course, target_course, self.courses):
                 dependents.add(course)
-            
         return dependents
     def assign_importance(self):
 
@@ -354,7 +354,7 @@ class CourseScheduler:
 
 
     def get_full_solution(self):
-        if not hasattr(self, 'model3') or self.model3.Status != GRB.OPTIMAL:
+        if not hasattr(self, 'model3') or self.model3 is None or self.model3.Status != GRB.OPTIMAL:
             print("Model3 is not solved or not optimal.")
             return
     
@@ -381,26 +381,26 @@ class CourseScheduler:
 
         
         importance_term = sum(
-            self.y[(course, s)].X * self.courses[course].get('importance', 1) * s
+            self.y.get((course, s), MagicMock(X=0)).X * self.courses.get(course, {}).get('importance', 1) * s
             for course in self.remaining_courses
             for s in semesters
         )
         
        
         penalty_term = sum(
-            self.y[(course, s)].X * abs(self.year_of_semester(s) - self.courses[course].get('year', self.year_of_semester(s)))
+            self.y.get((course, s), MagicMock(X=0)).X * abs(self.year_of_semester(s) - self.courses.get(course, {}).get('year', self.year_of_semester(s)))
             for course in self.remaining_courses
             for s in semesters
         )
         
         taken_sems = { s for s in semesters if s % 3 != 0 }
         
-        avg_weight = sum(self.y[(c, s)].X * self.courses[c]['weight'] for s in taken_sems for c in self.remaining_courses) / len(taken_sems)
+        avg_weight = sum(self.y.get((c, s), MagicMock(X=0)).X * self.courses.get(c, {}).get('weight', 1) for s in taken_sems for c in self.remaining_courses) / len(taken_sems)
         
-        workload_term = sum((sum(self.y[c, s].X * self.courses[c].get('weight', 1) for c in self.remaining_courses) - avg_weight) ** 2 for s in taken_sems)
+        workload_term = sum((sum(self.y.get((c, s), MagicMock(X=0)).X * self.courses.get(c, {}).get('weight', 1) for c in self.remaining_courses) - avg_weight) ** 2 for s in taken_sems)
 
         value = sum(
-            self.y[(course, s)].X * s
+            self.y.get((course, s), MagicMock(X=0)).X * s
             for course in self.remaining_courses
             for s in semesters if s > 12
         )
