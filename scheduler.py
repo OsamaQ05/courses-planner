@@ -174,7 +174,15 @@ class CourseScheduler:
 
         # restricted cources constrain e.g sdp
         
-        credits_up_to_semester = {s: gp.quicksum(self.courses[c]['credits'] * self.y[c, t] for c in self.remaining_courses for t in semesters if t < s) for s in semesters }
+        credits_up_to_semester = {
+        s: gp.quicksum(
+            self.courses[c]['credits'] * self.y[c, t]
+            for c in self.remaining_courses
+            for t in semesters if t < s
+        ) + sum(self.courses[c]['credits'] for c in self.completed_courses if c in self.courses)
+        for s in semesters
+    }
+
 
         special_cases = [i for i, j in self.courses.items() if 'min_credits' in j]
         for course in special_cases:

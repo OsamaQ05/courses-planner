@@ -21,64 +21,62 @@ def home():
 
         completed_set = set(code.strip() for code in completed_raw.split(',') if code.strip())
         courses = plans[major_index]
+        print(completed_set)
 
-        # Debug information
-        print(f"Total courses in major: {len(courses)}")
-        print(f"Completed courses: {len(completed_set)}")
-        print(f"Remaining courses: {len(courses) - len(completed_set)}")
-        print(f"Completed semesters: {completed_semesters}")
 
         scheduler = CourseScheduler(
             courses=courses,
             completed=completed_set,
-            required=set(courses.keys()),  # Use all courses in the major, not just time_data
-            max=18,  # Changed from 180 to 18 (max credits per semester)
+            required=set(courses.keys()),
+            max=18,
             min=12,
-            semesters=8,  # Reduced from 12 to 8 semesters to make it more feasible
+            semesters=12,  
             starting=completed_semesters + 1
         )
 
-        # Set timeout for optimization
         model = scheduler.build_model3(alpha=0, beta=0, gamma=80, delta=30)
-        model.setParam('TimeLimit', 30)  # 30 second timeout
-        model.setParam('OutputFlag', 0)  # Reduce output for cleaner logs
         model.optimize()
-      
-        # Check if model has a solution
-        if model.Status == GRB.OPTIMAL:
-            # Get structured output
-            result_dict = {}
-            for (course, sem), var in scheduler.y.items():
-                if var.X > 0.5:
-                    result_dict.setdefault(sem, []).append(course)
-                    if sem == completed_semesters + 1:
-                        first_semester_courses.append(course)
-
-            plan = sorted(result_dict.items())
-        elif model.Status == GRB.INFEASIBLE:
-            plan = []
-            first_semester_courses = []
-            error_message = "No valid schedule found. The constraints are infeasible. This might be due to conflicting prerequisites or credit requirements."
-        elif model.Status == GRB.TIME_LIMIT:
-            plan = []
-            first_semester_courses = []
-            error_message = "Optimization timed out. The problem is too complex. Try selecting fewer courses or adjusting your parameters."
-        else:
-            # Model has no solution or other issues
-            plan = []
-            first_semester_courses = []
-            error_message = f"Optimization failed with status {model.Status}. Please try again with different parameters."
-
-      
+        scheduler.get_full_solution()
+        # for output
+        result_dict = {}
+        for (course, sem), var in scheduler.y.items():
+            if var.X > 0.5:
+                result_dict.setdefault(sem, []).append(course)
+                if sem == completed_semesters + 1:
+                    first_semester_courses.append(course)
+        # Transform plan to structured format for frontend
+        plan = []
+        for sem, course_codes in sorted(result_dict.items()):
+            semester_courses = []
+            for code in course_codes:
+                course_info = courses.get(code, {})
+                semester_courses.append({
+                    "code": code,
+                    "name": course_info.get("name", code),
+                    "credits": course_info.get("credits", 0)
+                })
+            plan.append({
+                "number": sem,
+                "credits": sum(c["credits"] for c in semester_courses),
+                "courses": semester_courses
+            })
+        # Calculate stats for the plan
+        total_semesters = len(plan)
+        total_courses = sum(len(sem['courses']) for sem in plan)
+        total_credits = sum(sem['credits'] for sem in plan)
+        avg_credits_per_semester = round(total_credits / total_semesters, 2) if total_semesters else 0
 
         return render_template(
             'plan.html',
             plan=plan,
+            total_semesters=total_semesters,
+            total_courses=total_courses,
+            total_credits=total_credits,
+            avg_credits_per_semester=avg_credits_per_semester,
             first_semester_courses=first_semester_courses,
             major_index=major_index,
             completed_raw=completed_raw,
-            completed_semesters=completed_semesters,
-            error=error_message if 'error_message' in locals() else None
+            completed_semesters=completed_semesters
         )
 
     return render_template('index.html')
@@ -90,28 +88,19 @@ def next_semester():
     courses = plans[major_index]
 
     scheduler = CourseScheduler(
-        courses=courses,
+        courses=time_data,#courses= courses 
         completed=completed_set,
         required=set(courses.keys())
     )
     model = scheduler.build_model2(desired_courses=registered_set)
-    
     model.optimize()
-    #scheduler.get_full_solution()
-    
-    if model.Status == GRB.OPTIMAL:
-        next_plan = [
-            f"{scheduler.courses[course]['name']} → {section}"
-            for (course, section), var in scheduler.x2.items() if var.X > 0.5
-        ]
-    else:
-        # Model is infeasible or has no solution
-        next_plan = []
-        error_message = "No valid schedule found for the selected courses. Check for time conflicts or missing prerequisites."
+    next_plan = [
+        f"{scheduler.courses[course]['name']} → {section}"
+        for (course, section), var in scheduler.x2.items() if var.X > 0.5
+    ]
     return render_template(
         'schedule.html',
-        next_plan=next_plan,
-        error_message=error_message if 'error_message' in locals() else None
+        next_plan=next_plan
     )
 
 
@@ -119,23 +108,7 @@ def next_semester():
 def get_courses():
     major = int(request.args.get('major', 0))
     selected_courses = plans[major]
-    result = []
-    for code, data in selected_courses.items():
-        # Convert set to list for JSON serialization
-        available_in = data.get('available_in', {'fall', 'spring', 'summer'})
-        if isinstance(available_in, set):
-            available_in = list(available_in)
-        
-        course_info = {
-            'code': code, 
-            'name': data['name'],
-            'credits': data.get('credits', 0),
-            'weight': data.get('weight', 1),
-            'year': data.get('year', 1),  # Default to year 1 if not specified
-            'prerequisites': data.get('prerequisites', []),
-            'available_in': available_in
-        }
-        result.append(course_info)
+    result = [{'code': code, 'name': data['name']} for code, data in selected_courses.items()]
     return jsonify(result)
 
 
