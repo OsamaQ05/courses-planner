@@ -491,6 +491,14 @@
                                     </li>
                                 {% endfor %}
                             </ul>
+                            {% if loop.first %}
+                            <form method="post" action="/next_semester" style="margin-top: 1rem; text-align: right;">
+                                <input type="hidden" name="major" value="{{ major_index }}">
+                                <input type="hidden" name="completed" value="{{ completed_raw }}">
+                                <input type="hidden" name="registered" value="{{ semester.courses | map(attribute='code') | join(',') }}">
+                                <button type="submit" class="btn" style="float: right;">View Timetable</button>
+                            </form>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>

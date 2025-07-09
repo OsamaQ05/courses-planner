@@ -134,7 +134,7 @@ class CourseScheduler:
                         self.x2[(c1, t1)] + self.x2[(c2, t2)] <= 1,
                         name=f"time_conflict_{c1}_{t1}_vs_{c2}_{t2}"
                     )
-        return self.model2
+        
     
 
 
@@ -358,6 +358,19 @@ class CourseScheduler:
     @staticmethod
     def year_of_semester(s):
         return int((s-1) // 3 + 1 )
+    
+    def to_minutes(t):
+            mins_diff=0
+            if ':' in t:
+                hour, minute = map(int, t.split(':'))
+            else:
+                hour, minute = int(t), 0
+            if hour >= 9:
+                mins_diff+= (hour-9)  * 60 
+            else:
+                mins_diff+= 180+ hour*60
+            mins_diff+= minute
+            return mins_diff
 
 
 

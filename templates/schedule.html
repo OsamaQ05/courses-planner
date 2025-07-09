@@ -437,63 +437,33 @@
             </div>
         {% endif %}
 
-        {% if schedule %}
-            <div class="card fade-in">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value">{{ total_courses }}</div>
-                        <div class="stat-label">Total Courses</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{{ total_credits }}</div>
-                        <div class="stat-label">Total Credits</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{{ total_sections }}</div>
-                        <div class="stat-label">Total Sections</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value">{{ total_labs }}</div>
-                        <div class="stat-label">Total Labs</div>
-                    </div>
-                </div>
 
-                <div class="schedule-grid">
-                    {% for course in schedule %}
-                        <div class="course-card">
-                            <div class="course-header">
-                                <div class="course-title">{{ course.code }}</div>
-                                <div class="course-credits">{{ course.credits }} Credits</div>
-                            </div>
-                            
-                            {% if course.section %}
-                                <div class="schedule-info">
-                                    <div class="schedule-location">{{ course.section.location or 'TBD' }}</div>
-                                    <div class="schedule-time">{{ course.section.time or 'TBD' }}</div>
-                                    <div class="schedule-days">{{ course.section.days or 'TBD' }}</div>
-                                </div>
-                            {% endif %}
-                            
-                            {% if course.lab %}
-                                <div class="schedule-info">
-                                    <div class="schedule-location">{{ course.lab.location or 'TBD' }}</div>
-                                    <div class="schedule-time">{{ course.lab.time or 'TBD' }}</div>
-                                    <div class="schedule-days">{{ course.lab.days or 'TBD' }}</div>
-                                </div>
-                            {% endif %}
-                            
-                            <div style="margin-top: 1rem;">
-                                <strong style="color: #cbd5e0;">Course Name:</strong>
-                                <div style="color: #a0aec0; margin-top: 0.25rem;">{{ course.name }}</div>
-                            </div>
-                        </div>
-                    {% endfor %}
+        {% if timetable_courses %}
+        <div class="card fade-in">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">
+                        {{ timetable_courses|map(attribute='code')|unique|list|length }}
+                    </div>
+                    <div class="stat-label">Total Courses</div>
                 </div>
-
-                <div style="text-align: center; margin-top: 2rem;">
-                    <a href="/" class="btn btn-secondary">Generate New Schedule</a>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        {{ lab_count if lab_count is defined else 0 }}
+                    </div>
+                    <div class="stat-label">Total Labs</div>
                 </div>
             </div>
+            <div style="overflow-x:auto;">
+                <div id="timetable" style="width:100%; min-width:900px;">
+                    <!-- Timetable grid will be rendered here -->
+                </div>
+                <div id="debug-output" style="background:rgba(30,30,40,0.8);color:#63b3ed;font-size:0.95em;padding:10px 12px;margin-top:18px;border-radius:8px;max-height:300px;overflow:auto;"></div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="/" class="btn btn-secondary">Generate New Schedule</a>
+            </div>
+        </div>
         {% endif %}
 
         <div class="loading" id="loading">
@@ -506,6 +476,96 @@
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
         }
+
+        // Timetable rendering logic
+        {% if timetable_courses %}
+
+        // Days mapping (Monday to Thursday only)
+        const dayMap = { 'M':0, 'T':1, 'W':2, 'H':3 };
+        const dayNames = ['M','T','W','H'];
+
+        // Helper: parse 'HH:MM' to hour, minute
+        function parseHourMin(str) {
+            if (!str) return [0,0];
+            let [h, m] = str.split(':').map(Number);
+            // If hour is 1-7, treat as PM (13-19), else leave as is
+            if (h >= 1 && h <= 7) h += 12;
+            return [h, m];
+        }
+
+        // Build grid
+        function renderTimetable(courses) {
+            // Fixed hour range: 9am to 8pm
+            let minHour = 9, maxHour = 20;
+
+            // Build grid HTML with horizontal lines for each hour
+            let html = '<table style="width:100%; border-collapse:separate; border-spacing:0; background:rgba(26,26,46,0.7); border-radius:16px; overflow:hidden;">';
+            html += '<tr><th style="width:60px;"></th>';
+            for (let d=0; d<4; ++d) html += `<th style="padding:8px 0; color:#a0aec0; font-weight:600;">${dayNames[d]}</th>`;
+            html += '</tr>';
+            for (let h=minHour; h<=maxHour; ++h) {
+                html += `<tr style=\"border-bottom:1.5px solid #444;\"><td style=\"color:#a0aec0; text-align:right; padding-right:8px; font-size:0.95rem; border-bottom:1.5px solid #444;\">${h <= 12 ? h + ' am' : (h-12) + ' pm'}</td>`;
+                for (let d=0; d<4; ++d) html += `<td style=\"position:relative; min-width:90px; min-height:40px; height:40px; border-bottom:1.5px solid #444;\"></td>`;
+                html += '</tr>';
+            }
+            html += '</table>';
+
+            document.getElementById('timetable').innerHTML = html;
+
+            courses.forEach((c, idx) => {
+                if (!c.days || !c.start || !c.end) {
+                    return;
+                }
+                let [sh, sm] = parseHourMin(c.start);
+                let totalMinutes = c.length || 60;
+                // Each row is 60 min, 40px tall
+                let pxPerMin = 40 / 60;
+                let blockHeight = totalMinutes * pxPerMin;
+                let marginTop = sm * pxPerMin;
+                let startRow = sh - minHour + 1;
+                let daysArr = Array.isArray(c.days) ? c.days : (typeof c.days === 'string' ? c.days.split('') : []);
+                daysArr.forEach(day => {
+                    let d = dayMap[day];
+                    if (d === undefined) {
+                        return;
+                    }
+                    let table = document.getElementById('timetable').querySelector('table');
+                    if (startRow < 1 || !table) {
+                        return;
+                    }
+                    let cell = table.rows[startRow].cells[d+1];
+                    if (!cell) {
+                        return;
+                    }
+                    let color = c.color || ['#3182ce','#38a169','#e53e3e','#d69e2e'][d%4];
+                    let lengthStr = c.length ? ` (${c.length} min)` : '';
+                    // Render block with height and margin-top for minute offset
+                    let block = document.createElement('div');
+                    block.style.background = color;
+                    block.style.color = '#fff';
+                    block.style.fontWeight = '600';
+                    block.style.borderRadius = '8px';
+                    block.style.padding = '4px 0 4px 8px';
+                    block.style.margin = '2px 0';
+                    block.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)';
+                    block.style.position = 'absolute';
+                    block.style.left = '0';
+                    block.style.right = '0';
+                    block.style.top = marginTop + 'px';
+                    block.style.height = blockHeight + 'px';
+                    block.style.zIndex = 2;
+                    block.innerHTML = `${c.code}${c.section ? ' ('+c.section+')' : ''}${lengthStr}`;
+                    cell.style.position = 'relative';
+                    cell.appendChild(block);
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTimetable({{ timetable_courses|tojson }});
+        });
+        {% endif %}
     </script>
 </body>
 </html>
+

@@ -92,7 +92,7 @@ ce_courses = {
 
 plans= [cs_courses, ce_courses]
 
-time_data = courses = {
+time_data = {
     'MATH242': {
         'name': 'Intro to Probability and Statistics',
         'credits': 3,
