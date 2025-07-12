@@ -98,41 +98,89 @@ time_data = {
         'credits': 3,
         'prerequisites': [],
         'weight': 2,
-        'sections': ['MW9-11:30', 'TH9-9:30'],
+        'sections': [
+            'MW9-10:30', 'MW11-12:30', 'MW1-2:30',
+            'TH9-10:30', 'TH11-12:30', 'TH2-3:30'
+        ]
+        # No lab
     },
     'ENGR202': {
         'name': 'Data Science and AI',
         'credits': 3,
         'prerequisites': [],
         'weight': 2,
-        'sections': ['MW2-4', 'TH12-1:30'],
-        'labs': ['W4-6', 'H5-7'],
+        'sections': [
+            'MW2-3:30', 'MW4-5:30', 'TH12-1:30',
+            'TH2-3:30', 'TH4-5:30'
+        ],
+        'labs': [
+            'M9-11', 'T2-4', 'W4-6', 'H5-7', 'H2-4'
+        ]
     },
     'COSC114': {
         'name': 'Intro to Computing Using Python',
         'credits': 4,
         'prerequisites': [],
         'weight': 2,
-        'sections': ['MW1-3', 'TH3-5'],
-        'labs': ['M4-6', 'W9-11'],
+        'sections': [
+            'MW1-2:30', 'MW3-4:30', 'MW5-6:30',
+            'TH3-4:30', 'TH5-6:30'
+        ],
+        'labs': [
+            'M4-6', 'W9-11', 'T12-2', 'H10-12', 'W1-3'
+        ]
     },
     'PHYS121': {
         'name': 'University Physics I',
         'credits': 4,
         'prerequisites': [],
         'weight': 2,
-        'sections': ['TH2-4', 'MW3-5'],
-        'labs': ['T5-7', 'W4-6'],
+        'sections': [
+            'TH2-3:30', 'MW3-4:30', 'MW6-7:30',
+            'TH4-5:30', 'MW10-11:30'
+        ],
+        'labs': [
+            'T5-7', 'W4-6', 'T11-1', 'M2-4', 'H1-3'
+        ]
     },
     'ENGL101': {
         'name': 'Academic English I',
         'credits': 3,
         'prerequisites': [],
         'weight': 1,
-        'sections': ['MW9-11', 'TH10-11:30']
+        'sections': [
+            'MW9-10:30', 'MW11-12:30', 'TH10-11:30',
+            'TH9-10:30', 'MW2-3:30'
+        ]
         # No lab
     }
+    'CHEM110': {
+        'name': 'General Chemistry',
+        'credits': 4,
+        'prerequisites': [],
+        'weight': 2,
+        'sections': [
+            'MW10-11:30', 'MW12-1:30', 'TH1-2:30',
+            'TH3-4:30'
+        ],
+        'labs': [
+            'M1-3', 'T3-5', 'W10-12', 'H9-11'
+        ]
+    },
+    'CSCI200': {
+        'name': 'Object-Oriented Programming',
+        'credits': 4,
+        'prerequisites': [],
+        'weight': 2,
+        'sections': [
+            'MW8-9:30', 'MW2-3:30', 'TH11-12:30', 'TH1-2:30'
+        ],
+        'labs': [
+            'M3-5', 'T9-11', 'W2-4', 'H4-6'
+        ]
+    }
 }
+
 
 
 

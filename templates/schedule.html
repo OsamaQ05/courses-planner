@@ -103,7 +103,7 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: linear-gradient(90deg, transparent, #667eea, transparent);
+            background: linear-gradient(90deg, transparent, #667eea, #764ba2, #f093fb);
             animation: glow 2s ease-in-out infinite alternate;
         }
 
@@ -405,6 +405,21 @@
             animation: fadeInUp 0.6s ease-out;
         }
 
+        .day-toggle-btn.active {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #22223b;
+            border: 1.5px solid #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+            opacity: 1;
+        }
+        .day-toggle-btn {
+            background: rgba(102, 126, 234, 0.15);
+            color: #a0aec0;
+            border: 1.5px solid #2d3748;
+            opacity: 0.5;
+            transition: all 0.2s;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -429,6 +444,11 @@
         <div class="header">
             <h1>Next Semester Schedule</h1>
             <p>Optimized course schedule with time conflicts resolved</p>
+            {% if num_solutions %}
+            <div style="margin-top:1rem; font-size:1.1rem; color:#ecc94b;">
+                Number of Solutions: {{ num_solutions }}
+            </div>
+            {% endif %}
         </div>
 
         {% if error %}
@@ -437,33 +457,221 @@
             </div>
         {% endif %}
 
+        <!-- Preferences Filter Bar -->
+        <form id="preferences-form" method="POST" action="/next_semester" style="margin-bottom:2rem;">
+            <div class="card fade-in" style="display:flex; flex-wrap:wrap; align-items:center; gap:2rem; justify-content:center; padding:1.5rem 2rem;">
+                <!-- Preferred Days -->
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <label style="font-weight:600; margin-bottom:0.5rem;">Preferred Days</label>
+                    <div id="days-toggle-group" style="display:flex; gap:0.5rem;">
+                        {% set all_days = ['Mon', 'Tue', 'Wed', 'Thu'] %}
+                        {% for day in all_days %}
+                        <button type="button" class="day-toggle-btn btn {% if day in days_preferred %}active{% endif %}" data-day="{{ day }}">{{ day }}</button>
+                        {% endfor %}
+                    </div>
+                    {% for day in all_days %}
+                    <input type="hidden" name="days_preferred" value="{{ day }}" {% if day not in days_preferred %}disabled{% endif %} id="input-{{ day }}">
+                    {% endfor %}
+                </div>
+                <!-- Start Time -->
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <label style="font-weight:600; margin-bottom:0.5rem;">Start Time</label>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <input type="number" name="start_hour" id="start-hour" min="1" max="12" value="{{ start_hour }}" style="width:60px; text-align:center; font-size:1.1rem; border-radius:8px; border:1px solid #667eea; background:rgba(26,26,46,0.7); color:#e2e8f0;">
+                        <button type="button" id="start-ampm-btn" class="btn btn-secondary" style="padding:0.5rem 1.2rem; font-size:1rem;">{{ start_ampm }}</button>
+                        <input type="hidden" name="start_ampm" id="start-ampm" value="{{ start_ampm }}">
+                    </div>
+                </div>
+                <!-- End Time -->
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <label style="font-weight:600; margin-bottom:0.5rem;">End Time</label>
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <input type="number" name="end_hour" id="end-hour" min="1" max="12" value="{{ end_hour }}" style="width:60px; text-align:center; font-size:1.1rem; border-radius:8px; border:1px solid #667eea; background:rgba(26,26,46,0.7); color:#e2e8f0;">
+                        <button type="button" id="end-ampm-btn" class="btn btn-secondary" style="padding:0.5rem 1.2rem; font-size:1rem;">{{ end_ampm }}</button>
+                        <input type="hidden" name="end_ampm" id="end-ampm" value="{{ end_ampm }}">
+                    </div>
+                </div>
+                <!-- Avoid Gaps -->
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                    <label style="font-weight:600; margin-bottom:0.5rem;">&nbsp;</label>
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" name="avoid_gaps" id="avoid-gaps" {% if avoid_gaps %}checked{% endif %} style="accent-color:#667eea; width:18px; height:18px;">
+                        Avoid Gaps
+                    </label>
+                </div>
+                <!-- Hidden fields for context -->
+                <input type="hidden" name="major" value="{{ major_index }}">
+                <input type="hidden" name="completed" value="{{ completed_raw }}">
+                <input type="hidden" name="registered" value="{{ registered_raw }}">
+                <button type="submit" class="btn" style="margin-left:2rem;">Apply Filters</button>
+            </div>
+        </form>
+        <!-- End of preferences filter bar -->
 
-        {% if timetable_courses %}
-        <div class="card fade-in">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value">
-                        {{ timetable_courses|map(attribute='code')|unique|list|length }}
+        {% if not preferences_submitted %}
+            <div class="card fade-in" style="text-align:center; margin-top:2rem;">
+                <div style="color:#ecc94b; font-size:1.2rem; padding:2rem;">Please set your schedule preferences and submit to generate your best-matched schedules.</div>
+            </div>
+        {% else %}
+            <div class="header">
+                <h2>Here are the best schedule matches based on your preferences!</h2>
+            </div>
+            {% if all_timetables and all_timetables|length > 0 %}
+                <div class="card fade-in" id="timetable-card" style="transition: transform 0.5s cubic-bezier(.4,2,.6,1); will-change: transform;">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">
+                                {{ all_timetables[0]|map(attribute='code')|unique|list|length }}
+                            </div>
+                            <div class="stat-label">Total Courses</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">
+                                {{ lab_count if lab_count is defined else 0 }}
+                            </div>
+                            <div class="stat-label">Total Labs</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="solution-count-value">1 / {{ solution_count }}</div>
+                            <div class="stat-label">Solution</div>
+                        </div>
                     </div>
-                    <div class="stat-label">Total Courses</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">
-                        {{ lab_count if lab_count is defined else 0 }}
+                    <div class="timetable-slider-outer" style="overflow-x:hidden; width:100%; min-width:400px;">
+                        <div id="timetable-slider-inner" class="timetable-slider-inner" style="display:flex; transition: transform 0.5s cubic-bezier(.4,2,.6,1); will-change: transform; min-width:400px; width:100%;">
+                            <!-- Timetables will be rendered here by JS -->
+                        </div>
                     </div>
-                    <div class="stat-label">Total Labs</div>
+                    {% if solution_count > 1 %}
+                    <div id="solution-nav" style="text-align:center; margin-top:2rem;">
+                        <button id="prev-solution" class="btn btn-secondary" style="margin-right:1.5rem;">&#8592; Previous</button>
+                        <button id="next-solution" class="btn btn-secondary">Next &#8594;</button>
+                    </div>
+                    {% endif %}
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <a href="/" class="btn btn-secondary">Generate New Schedule</a>
+                    </div>
                 </div>
-            </div>
-            <div style="overflow-x:auto;">
-                <div id="timetable" style="width:100%; min-width:900px;">
-                    <!-- Timetable grid will be rendered here -->
+                <script>
+                // Timetable rendering logic
+                const allTimetables = {{ all_timetables|tojson|safe }};
+                let currentSolution = 0;
+                const dayNames = ['Mon', 'Tue', 'Wed', 'Thu'];
+                const dayMap = { 'M': 0, 'T': 1, 'W': 2, 'H': 3 };
+                function parseHourMin(str) {
+                    let [h, m] = String(str).split(':');
+                    h = parseInt(h);
+                    m = parseInt(m || '0');
+                    if (h < 7) h += 12; // treat 1,2,3 as 13,14,15
+                    return [h, m];
+                }
+                function buildTimetableHTML(courses) {
+                    let minHour = 9, maxHour = 20;
+                    let html = '<table style="width:10%; min-width:100px; border-collapse:collapse; background:rgba(26,26,46,0.7); border-radius:16px;">';
+                    html += '<tr><th style="width:50px;"></th>';
+                    for (let d=0; d<4; ++d) html += `<th style="padding:8px 0; color:#a0aec0; font-weight:600; min-width:70px;">${dayNames[d]}</th>`;
+                    html += '</tr>';
+                    for (let h=minHour; h<=maxHour; ++h) {
+                        html += `<tr style="border-bottom:1.5px solid #444;"><td style="color:#a0aec0; text-align:right; padding-right:8px; font-size:0.95rem; border-bottom:1.5px solid #444; min-width:50px;">${h <= 12 ? h + ' am' : (h-12) + ' pm'}</td>`;
+                        for (let d=0; d<4; ++d) html += `<td style="position:relative; min-width:70px; min-height:40px; height:40px; border-bottom:1.5px solid #444;"></td>`;
+                        html += '</tr>';
+                    }
+                    html += '</table>';
+                    return html;
+                }
+                function renderAllTimetables() {
+                    const slider = document.getElementById('timetable-slider-inner');
+                    slider.innerHTML = '';
+                    allTimetables.forEach((courses, idx) => {
+                        let div = document.createElement('div');
+                        div.className = 'timetable-slide';
+                        div.style.width = '100%';
+                        div.style.minWidth = '300px';
+                        div.style.flex = '0 0 100%';
+                        div.innerHTML = buildTimetableHTML(courses);
+                        slider.appendChild(div);
+                    });
+                    slider.style.width = (allTimetables.length * 100) + '%';
+                    // After HTML, render blocks for each timetable
+                    allTimetables.forEach((courses, idx) => {
+                        let table = slider.children[idx].querySelector('table');
+                        courses.forEach((c, cidx) => {
+                            if (!c.days || !c.start || !c.end) return;
+                            let [sh, sm] = parseHourMin(c.start);
+                            let totalMinutes = c.length || 60;
+                            let pxPerMin = 40 / 60;
+                            let blockHeight = totalMinutes * pxPerMin;
+                            let marginTop = sm * pxPerMin;
+                            let startRow = sh - 9 + 1;
+                            // Robustly handle days as array or string, flatten to individual day codes
+                            let daysArr = [];
+                            if (Array.isArray(c.days)) {
+                                c.days.forEach(val => {
+                                    if (typeof val === 'string') {
+                                        (val.match(/[MTWH]/g) || []).forEach(d => daysArr.push(d));
+                                    }
+                                });
+                            } else if (typeof c.days === 'string') {
+                                (c.days.match(/[MTWH]/g) || []).forEach(d => daysArr.push(d));
+                            }
+                            daysArr.forEach(day => {
+                                let d = dayMap[day];
+                                if (d === undefined) return;
+                                if (startRow < 1 || !table) return;
+                                let cell = table.rows[startRow].cells[d+1];
+                                if (!cell) return;
+                                let color = c.color || ['#3182ce','#38a169','#e53e3e','#d69e2e'][d%4];
+                                let lengthStr = c.length ? ` (${c.length} min)` : '';
+                                let block = document.createElement('div');
+                                block.style.background = color;
+                                block.style.color = '#fff';
+                                block.style.fontWeight = '600';
+                                block.style.borderRadius = '8px';
+                                block.style.padding = '4px 0 4px 8px';
+                                block.style.margin = '2px 0';
+                                block.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)';
+                                block.style.position = 'absolute';
+                                block.style.left = '0';
+                                block.style.right = '0';
+                                block.style.top = marginTop + 'px';
+                                block.style.height = blockHeight + 'px';
+                                block.style.zIndex = 2;
+                                block.innerHTML = `${c.code}${c.section ? ' ('+c.section+')' : ''}${lengthStr}`;
+                                cell.style.position = 'relative';
+                                cell.appendChild(block);
+                            });
+                        });
+                    });
+                }
+                function updateTimetableSlider() {
+                    const slider = document.getElementById('timetable-slider-inner');
+                    slider.style.transform = `translateX(-${currentSolution * 100}%)`;
+                    if (document.getElementById('solution-count-value')) {
+                        document.getElementById('solution-count-value').textContent = (currentSolution + 1) + ' / ' + allTimetables.length;
+                    }
+                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    renderAllTimetables();
+                    updateTimetableSlider();
+                    if (Array.isArray(allTimetables) && allTimetables.length > 1) {
+                        document.getElementById('prev-solution').onclick = function() {
+                            currentSolution = (currentSolution - 1 + allTimetables.length) % allTimetables.length;
+                            updateTimetableSlider();
+                        };
+                        document.getElementById('next-solution').onclick = function() {
+                            currentSolution = (currentSolution + 1) % allTimetables.length;
+                            updateTimetableSlider();
+                        };
+                    }
+                });
+                </script>
+            {% else %}
+                <div class="card fade-in" style="text-align:center; margin-top:2rem;">
+                    <div style="color:#f56565; font-size:1.2rem; padding:2rem;">No schedule solutions found. Please try different input or constraints.</div>
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <a href="/" class="btn btn-secondary">Back to Home</a>
+                    </div>
                 </div>
-                <div id="debug-output" style="background:rgba(30,30,40,0.8);color:#63b3ed;font-size:0.95em;padding:10px 12px;margin-top:18px;border-radius:8px;max-height:300px;overflow:auto;"></div>
-            </div>
-            <div style="text-align: center; margin-top: 2rem;">
-                <a href="/" class="btn btn-secondary">Generate New Schedule</a>
-            </div>
-        </div>
+            {% endif %}
         {% endif %}
 
         <div class="loading" id="loading">
@@ -473,98 +681,63 @@
     </div>
 
     <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Day toggle logic
+        document.querySelectorAll('.day-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function(event) {
+                event.preventDefault();
+                const day = this.getAttribute('data-day');
+                const input = document.getElementById('input-' + day);
+                if (this.classList.contains('active')) {
+                    this.classList.remove('active');
+                    input.disabled = true;
+                } else {
+                    this.classList.add('active');
+                    input.disabled = false;
+                }
+            });
+        });
+        // AM/PM toggle logic for start
+        document.getElementById('start-ampm-btn').addEventListener('click', function() {
+            const ampm = document.getElementById('start-ampm');
+            if (ampm.value === 'AM') {
+                ampm.value = 'PM';
+                this.textContent = 'PM';
+            } else {
+                ampm.value = 'AM';
+                this.textContent = 'AM';
+            }
+        });
+        // AM/PM toggle logic for end
+        document.getElementById('end-ampm-btn').addEventListener('click', function() {
+            const ampm = document.getElementById('end-ampm');
+            if (ampm.value === 'AM') {
+                ampm.value = 'PM';
+                this.textContent = 'PM';
+            } else {
+                ampm.value = 'AM';
+                this.textContent = 'AM';
+            }
+        });
+        // Smart increment/decrement for start hour
+        document.getElementById('start-hour').addEventListener('change', function() {
+            let val = parseInt(this.value);
+            let ampm = document.getElementById('start-ampm');
+            if (val > 12) { this.value = 1; ampm.value = (ampm.value === 'AM' ? 'PM' : 'AM'); document.getElementById('start-ampm-btn').textContent = ampm.value; }
+            if (val < 1) { this.value = 12; ampm.value = (ampm.value === 'AM' ? 'PM' : 'AM'); document.getElementById('start-ampm-btn').textContent = ampm.value; }
+        });
+        document.getElementById('end-hour').addEventListener('change', function() {
+            let val = parseInt(this.value);
+            let ampm = document.getElementById('end-ampm');
+            if (val > 12) { this.value = 1; ampm.value = (ampm.value === 'AM' ? 'PM' : 'AM'); document.getElementById('end-ampm-btn').textContent = ampm.value; }
+            if (val < 1) { this.value = 12; ampm.value = (ampm.value === 'AM' ? 'PM' : 'AM'); document.getElementById('end-ampm-btn').textContent = ampm.value; }
+        });
+    });
+    </script>
+    <script>
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
         }
-
-        // Timetable rendering logic
-        {% if timetable_courses %}
-
-        // Days mapping (Monday to Thursday only)
-        const dayMap = { 'M':0, 'T':1, 'W':2, 'H':3 };
-        const dayNames = ['M','T','W','H'];
-
-        // Helper: parse 'HH:MM' to hour, minute
-        function parseHourMin(str) {
-            if (!str) return [0,0];
-            let [h, m] = str.split(':').map(Number);
-            // If hour is 1-7, treat as PM (13-19), else leave as is
-            if (h >= 1 && h <= 7) h += 12;
-            return [h, m];
-        }
-
-        // Build grid
-        function renderTimetable(courses) {
-            // Fixed hour range: 9am to 8pm
-            let minHour = 9, maxHour = 20;
-
-            // Build grid HTML with horizontal lines for each hour
-            let html = '<table style="width:100%; border-collapse:separate; border-spacing:0; background:rgba(26,26,46,0.7); border-radius:16px; overflow:hidden;">';
-            html += '<tr><th style="width:60px;"></th>';
-            for (let d=0; d<4; ++d) html += `<th style="padding:8px 0; color:#a0aec0; font-weight:600;">${dayNames[d]}</th>`;
-            html += '</tr>';
-            for (let h=minHour; h<=maxHour; ++h) {
-                html += `<tr style=\"border-bottom:1.5px solid #444;\"><td style=\"color:#a0aec0; text-align:right; padding-right:8px; font-size:0.95rem; border-bottom:1.5px solid #444;\">${h <= 12 ? h + ' am' : (h-12) + ' pm'}</td>`;
-                for (let d=0; d<4; ++d) html += `<td style=\"position:relative; min-width:90px; min-height:40px; height:40px; border-bottom:1.5px solid #444;\"></td>`;
-                html += '</tr>';
-            }
-            html += '</table>';
-
-            document.getElementById('timetable').innerHTML = html;
-
-            courses.forEach((c, idx) => {
-                if (!c.days || !c.start || !c.end) {
-                    return;
-                }
-                let [sh, sm] = parseHourMin(c.start);
-                let totalMinutes = c.length || 60;
-                // Each row is 60 min, 40px tall
-                let pxPerMin = 40 / 60;
-                let blockHeight = totalMinutes * pxPerMin;
-                let marginTop = sm * pxPerMin;
-                let startRow = sh - minHour + 1;
-                let daysArr = Array.isArray(c.days) ? c.days : (typeof c.days === 'string' ? c.days.split('') : []);
-                daysArr.forEach(day => {
-                    let d = dayMap[day];
-                    if (d === undefined) {
-                        return;
-                    }
-                    let table = document.getElementById('timetable').querySelector('table');
-                    if (startRow < 1 || !table) {
-                        return;
-                    }
-                    let cell = table.rows[startRow].cells[d+1];
-                    if (!cell) {
-                        return;
-                    }
-                    let color = c.color || ['#3182ce','#38a169','#e53e3e','#d69e2e'][d%4];
-                    let lengthStr = c.length ? ` (${c.length} min)` : '';
-                    // Render block with height and margin-top for minute offset
-                    let block = document.createElement('div');
-                    block.style.background = color;
-                    block.style.color = '#fff';
-                    block.style.fontWeight = '600';
-                    block.style.borderRadius = '8px';
-                    block.style.padding = '4px 0 4px 8px';
-                    block.style.margin = '2px 0';
-                    block.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)';
-                    block.style.position = 'absolute';
-                    block.style.left = '0';
-                    block.style.right = '0';
-                    block.style.top = marginTop + 'px';
-                    block.style.height = blockHeight + 'px';
-                    block.style.zIndex = 2;
-                    block.innerHTML = `${c.code}${c.section ? ' ('+c.section+')' : ''}${lengthStr}`;
-                    cell.style.position = 'relative';
-                    cell.appendChild(block);
-                });
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            renderTimetable({{ timetable_courses|tojson }});
-        });
-        {% endif %}
     </script>
 </body>
 </html>
