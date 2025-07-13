@@ -511,6 +511,29 @@
             box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
         }
 
+        #progress-container {
+        width: 100%;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 10px;
+        height: 25px;
+        margin-top: 1.5rem;
+        overflow: hidden;
+        }
+
+        #progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #48bb78, #4299e1, #667eea);
+        transition: width 0.4s ease;
+        }
+
+        #progress-text {
+        text-align: center;
+        margin-top: 0.5rem;
+        font-weight: 500;
+        color: #cbd5e0;
+        }
+
         @keyframes fadeInDown {
             from {
                 opacity: 0;
@@ -776,17 +799,17 @@
         let selectedCourses = new Set();
 
         function toggleCourse(code) {
-            const item = document.getElementById(code);
+        const item = document.getElementById(code);
             if (selectedCourses.has(code)) {
-                selectedCourses.delete(code);
-                item.classList.remove("completed");
+            selectedCourses.delete(code);
+            item.classList.remove("completed");
             } else {
-                selectedCourses.add(code);
-                item.classList.add("completed");
-            }
-            document.getElementById("completed").value = Array.from(selectedCourses).join(",");
+            selectedCourses.add(code);
+            item.classList.add("completed");
         }
-
+        document.getElementById("completed").value = Array.from(selectedCourses).join(",");
+        updateProgress();
+    }
         function getYearGroup(course) {
             const year = course.year || 1;
             if (year === 1) return 'freshman';
@@ -959,7 +982,17 @@
             if (document.getElementById("major")) {
                 loadCourses();
             }
+            updateProgress();
+        };
+
+        window.onload = function () {
+            if (document.getElementById("major")) {
+                loadCourses();
+            }
         };
     </script>
+    <div id="progress-container">
+  <div id="progress-bar"></div>
+</div>
 </body>
 </html>
