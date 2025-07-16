@@ -35,7 +35,7 @@ def home():
             courses=courses,
             completed=completed_set,
             required=set(courses.keys()),
-            max=180,
+            max=18,
             min=12,
             semesters=12,
             starting=completed_semesters + 1
@@ -53,6 +53,12 @@ def home():
                     first_semester_courses.append(course)
         # Transform plan to structured format for frontend
         plan = []
+        # Build a reverse map for prerequisites (unlocks)
+        unlocks_map = {code: [] for code in courses}
+        for c, info in courses.items():
+            for prereq in info.get('prerequisites', []):
+                if prereq in unlocks_map:
+                    unlocks_map[prereq].append(c)
         for sem, course_codes in sorted(result_dict.items()):
             semester_courses = []
             for code in course_codes:
@@ -60,7 +66,9 @@ def home():
                 semester_courses.append({
                     "code": code,
                     "name": course_info.get("name", code),
-                    "credits": course_info.get("credits", 0)
+                    "credits": course_info.get("credits", 0),
+                    "prerequisites": course_info.get("prerequisites", []),
+                    "unlocks": unlocks_map.get(code, [])
                 })
             plan.append({
                 "number": sem,
@@ -117,6 +125,20 @@ def next_semester():
     registered_set = set(code.strip() for code in registered_raw.split(',') if code.strip())
     courses = plans[major_index]
 
+    # Parse fixed_sections and fixed_labs from form (JSON strings)
+    import json
+    fixed_sections = request.form.get('fixed_sections', '{}')
+    fixed_labs = request.form.get('fixed_labs', '{}')
+    try:
+        fixed_sections = json.loads(fixed_sections)
+    except Exception:
+        fixed_sections = {}
+    try:
+        fixed_labs = json.loads(fixed_labs)
+    except Exception:
+        fixed_labs = {}
+    
+
     # Preferences
     days_preferred = request.form.getlist('days_preferred') or ['Mon', 'Tue', 'Wed', 'Thu']
     start_hour = int(request.form.get('start_hour', 9))
@@ -137,7 +159,16 @@ def next_semester():
             major_index=major_index,
             completed_raw=completed_raw,
             registered_raw=registered_raw,
-            lab_count=0
+            lab_count=0,
+            fixed_sections=fixed_sections,
+            fixed_labs=fixed_labs,
+            days_preferred=days_preferred,
+            start_hour=start_hour,
+            start_ampm=start_ampm,
+            end_hour=end_hour,
+            end_ampm=end_ampm,
+            avoid_gaps=avoid_gaps,
+            time_data=time_data
         )
 
     # Use model 2 for timetable generation
@@ -147,7 +178,9 @@ def next_semester():
         required=set(courses.keys())
     )
     desired_courses = list(time_data.keys())
-    scheduler.build_model2(desired_courses=desired_courses)
+    print('fixed_sections:', fixed_sections)
+    print('fixed_labs:', fixed_labs)
+    scheduler.build_model2(desired_courses=desired_courses, fixed_sections=fixed_sections, fixed_labs=fixed_labs)
     # Set Gurobi parameters for multiple solutions
     scheduler.model2.setParam(gp.GRB.Param.PoolSearchMode, 2)
     scheduler.model2.setParam(gp.GRB.Param.PoolSolutions, 50)
@@ -218,117 +251,8 @@ def next_semester():
         if 'labs' in time_data[course]:
             lab_count += 1
 
-    # MCP ranking logic (simple custom scoring for now)
-    def score_timetable(timetable):
-        score = 0
-        # Days preferred: +2 for each course on a preferred day
-        for entry in timetable:
-            entry_days = entry.get('days', [])
-            if isinstance(entry_days, str):
-                entry_days = [entry_days]
-            for d in entry_days:
-                if d in days_preferred:
-                    score += 2
-        # Start/end hour: +1 for each course within preferred time
-        for entry in timetable:
-            try:
-                sh = int(entry.get('start', '9').split(':')[0])
-                eh = int(entry.get('end', '17').split(':')[0])
-                if sh >= start_hour:
-                    score += 1
-                if eh <= end_hour:
-                    score += 1
-            except:
-                pass
-        # Avoid gaps: penalize for gaps between courses on same day
-        if avoid_gaps:
-            # For each day, sort by start time, penalize gaps > 1 hour
-            from collections import defaultdict
-            day_courses = defaultdict(list)
-            for entry in timetable:
-                for d in entry.get('days', []):
-                    day_courses[d].append(entry)
-            for d, entries in day_courses.items():
-                times = sorted([int(e.get('start', '9').split(':')[0]) for e in entries if e.get('start')])
-                for i in range(1, len(times)):
-                    if times[i] - times[i-1] > 1:
-                        score -= (times[i] - times[i-1])
-        return score
-
-    # --- GPT-3.5 Turbo Ranking Integration ---
-    def timetable_to_text(timetable):
-        lines = []
-        for entry in timetable:
-            code = entry.get('code', '')
-            name = entry.get('name', '')
-            section = entry.get('section', '')
-            days = entry.get('days', [])
-            if isinstance(days, list):
-                days_str = '/'.join(days) if days else ''
-            else:
-                days_str = str(days)
-            start = entry.get('start', '')
-            end = entry.get('end', '')
-            if section:
-                lines.append(f"- {code} ({section}) ({days_str} {start}–{end})")
-            else:
-                lines.append(f"- {code} ({days_str} {start}–{end})")
-        return '\n'.join(lines)
-
-    gpt_top_indices = None
-    try:
-        # Prepare preferences string
-        pref_days = ', '.join(days_preferred)
-        pref_avoid_gaps = 'Yes' if avoid_gaps else 'No'
-        pref_start = f"{start_hour} {start_ampm}"
-        pref_end = f"{end_hour} {end_ampm}"
-        # Format schedules
-        formatted_schedules = ''
-        for idx, timetable in enumerate(all_timetables[:50]):
-            formatted_schedules += f"Schedule #{idx+1}:\n{timetable_to_text(timetable)}\n\n"
-        gpt_prompt = f"""
-You are helping a university student choose the best course schedule.
-
-Student preferences:
-- Preferred days: {pref_days}
-- Earliest start: {pref_start}
-- Latest end: {pref_end}
-- Avoid gaps between classes: {pref_avoid_gaps}
-
-Here are {len(all_timetables[:50])} possible schedules. Each schedule is numbered and lists courses with their meeting times.
-
-Please select and return the top 10 schedule numbers that best match the preferences. Return them as a Python list like:
-[1, 4, 5, 7, 9, 12, 14, 20, 25, 30]
-
-{formatted_schedules}
-"""
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": gpt_prompt}],
-            max_tokens=100,
-            temperature=0.2
-        )
-        gpt_reply = response['choices'][0]['message']['content']
-        print("GPT-3.5 Response:", gpt_reply)
-        import ast
-        gpt_top_indices = ast.literal_eval(gpt_reply.strip().split('\n')[0])
-        if not isinstance(gpt_top_indices, list):
-            raise ValueError('GPT did not return a list')
-        # Convert to 0-based indices
-        gpt_top_indices = [i-1 for i in gpt_top_indices if isinstance(i, int) and 0 < i <= len(all_timetables)]
-        top_timetables = [all_timetables[i] for i in gpt_top_indices if 0 <= i < len(all_timetables)]
-        # If less than 10, fill with rule-based
-        if len(top_timetables) < 10:
-            ranked = sorted(all_timetables, key=score_timetable, reverse=True)
-            for t in ranked:
-                if t not in top_timetables:
-                    top_timetables.append(t)
-                if len(top_timetables) == 10:
-                    break
-    except Exception as e:
-        print("GPT-3.5 ranking failed, using rule-based fallback:", e)
-        ranked = sorted(all_timetables, key=score_timetable, reverse=True)
-        top_timetables = ranked[:10]
+    # Just take the first 10 timetables (default logic)
+    top_timetables = all_timetables[:10]
 
     return render_template(
         'schedule.html',
@@ -345,7 +269,10 @@ Please select and return the top 10 schedule numbers that best match the prefere
         start_ampm=start_ampm,
         end_hour=end_hour,
         end_ampm=end_ampm,
-        avoid_gaps=avoid_gaps
+        avoid_gaps=avoid_gaps,
+        time_data=time_data,
+        fixed_sections=fixed_sections,
+        fixed_labs=fixed_labs
     )
 
 

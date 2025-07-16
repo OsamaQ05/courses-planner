@@ -153,7 +153,7 @@ time_data = {
             'TH9-10:30', 'MW2-3:30'
         ]
         # No lab
-    }
+    },
     'CHEM110': {
         'name': 'General Chemistry',
         'credits': 4,

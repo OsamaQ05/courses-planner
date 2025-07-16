@@ -87,9 +87,11 @@ class CourseScheduler:
 
 
     
-    def build_model2(self, desired_courses):
+    def build_model2(self, desired_courses,fixed_sections,fixed_labs):
         self.model2 = gp.Model("Time Scheduler")
         self.model2.setParam("OutputFlag", 1)
+        print('fixed_sections:', fixed_sections)
+        print('fixed_labs:', fixed_labs)
         
         self.x2 = {}
         
@@ -134,6 +136,16 @@ class CourseScheduler:
                         self.x2[(c1, t1)] + self.x2[(c2, t2)] <= 1,
                         name=f"time_conflict_{c1}_{t1}_vs_{c2}_{t2}"
                     )
+        for course, section in fixed_sections.items():
+            self.model2.addConstr(
+                self.x2[(course,section)] == 1)
+
+        for course, section in fixed_labs.items():
+            self.model2.addConstr(
+                self.x2[(course,section)] == 1)
+    
+
+    
         
     
 

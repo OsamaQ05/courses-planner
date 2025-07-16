@@ -117,8 +117,8 @@
 
         .schedule-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.2rem;
             margin-top: 2rem;
         }
 
@@ -503,10 +503,154 @@
                 <input type="hidden" name="major" value="{{ major_index }}">
                 <input type="hidden" name="completed" value="{{ completed_raw }}">
                 <input type="hidden" name="registered" value="{{ registered_raw }}">
+                <input type="hidden" name="fixed_sections" id="fixed_sections_input" value='{{ fixed_sections|tojson|safe if fixed_sections is defined else "{}" }}'>
+                <input type="hidden" name="fixed_labs" id="fixed_labs_input" value='{{ fixed_labs|tojson|safe if fixed_labs is defined else "{}" }}'>
                 <button type="submit" class="btn" style="margin-left:2rem;">Apply Filters</button>
             </div>
-        </form>
+            </form>
         <!-- End of preferences filter bar -->
+
+        <!-- Show current fixed sections/labs selections -->
+        <div style="text-align:center; margin-bottom:1rem;">
+            {% set fixed_sections_obj = fixed_sections if fixed_sections is defined else {} %}
+            {% set fixed_labs_obj = fixed_labs if fixed_labs is defined else {} %}
+            {% set has_fixed = (fixed_sections_obj|length > 0) or (fixed_labs_obj|length > 0) %}
+            {% if has_fixed %}
+                <div style="display:inline-block; background:rgba(102,126,234,0.10); border-radius:10px; padding:1rem 2rem; margin-bottom:0.5rem;">
+                    <div style="font-weight:600; color:#a18ffb; margin-bottom:0.5rem;">Fixed Sections/Labs:</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:1.5rem; justify-content:center;">
+                        {% for course, section in fixed_sections_obj.items() %}
+                            <div style="background:#f8fafc; color:#22223b; border-radius:7px; padding:0.4rem 1rem; font-size:1rem; margin-bottom:0.2rem;">
+                                <span style="font-weight:600;">{{ time_data[course].name if course in time_data else course }}</span>: Section <span style="color:#805ad5;">{{ section }}</span>
+                            </div>
+                        {% endfor %}
+                        {% for course, lab in fixed_labs_obj.items() %}
+                            <div style="background:#f8fafc; color:#22223b; border-radius:7px; padding:0.4rem 1rem; font-size:1rem; margin-bottom:0.2rem;">
+                                <span style="font-weight:600;">{{ time_data[course].name if course in time_data else course }}</span>: Lab <span style="color:#38a169;">{{ lab }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div style="color:#a0aec0; font-size:1rem; margin-bottom:0.5rem;">No fixed sections or labs selected.</div>
+            {% endif %}
+        </div>
+        <!-- Fixed Sections/Labs Filter -->
+        <div style="text-align:center; margin-bottom:1.5rem;">
+            <button type="button" id="fixed-sections-btn" class="btn">Choose Fixed Sections/Labs</button>
+        </div>
+        <div id="fixed-sections-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,15,35,0.85); z-index:1000; overflow:auto;">
+            <div style="background:#1a1a2e; margin:3rem auto; padding:2rem; border-radius:18px; max-width:90vw; min-width:60vw; box-shadow:0 8px 32px rgba(0,0,0,0.4); position:relative;">
+                <button type="button" id="close-fixed-sections" class="btn btn-secondary" style="position:absolute; top:1rem; right:1rem;">Close</button>
+                <h2 style="text-align:center; margin-bottom:2rem; color:#f8fafc;">Select Sections and Labs to Fix</h2>
+                <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:center;">
+                    {% for course, cinfo in time_data.items() %}
+                    <div style="min-width:180px; max-width:220px; background:rgba(102,126,234,0.08); border-radius:12px; padding:1rem;">
+                        <div style="font-size:1.1rem; font-weight:700; color:#f8fafc; margin-bottom:0.7rem; text-align:center;">{{ cinfo.name }}</div>
+                        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                            {% for section in cinfo.sections %}
+                            <button type="button" class="section-btn" data-course="{{ course }}" data-section="{{ section }}" style="background:rgba(102,126,234,0.15); color:#a0aec0; border:1.5px solid #2d3748; border-radius:8px; padding:0.4rem 0.7rem; font-size:1rem; transition:all 0.2s;">{{ section }}</button>
+                            {% endfor %}
+                        </div>
+                        {% if cinfo.labs %}
+                        <div style="margin-top:1rem; font-size:0.98rem; color:#ecc94b; font-weight:600;">Labs</div>
+                        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                            {% for lab in cinfo.labs %}
+                            <button type="button" class="lab-btn" data-course="{{ course }}" data-lab="{{ lab }}" style="background:rgba(102,126,234,0.15); color:#a0aec0; border:1.5px solid #2d3748; border-radius:8px; padding:0.4rem 0.7rem; font-size:1rem; transition:all 0.2s;">{{ lab }}</button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div style="text-align:center; margin-top:2rem;">
+                    <button type="button" id="save-fixed-sections" class="btn">Save Selection</button>
+                </div>
+            </div>
+        </div>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // On page load, set initial active state from hidden fields
+            let fixedSections = {};
+            let fixedLabs = {};
+            try { fixedSections = JSON.parse(document.getElementById('fixed_sections_input').value || '{}'); } catch (e) { fixedSections = {}; }
+            try { fixedLabs = JSON.parse(document.getElementById('fixed_labs_input').value || '{}'); } catch (e) { fixedLabs = {}; }
+            Object.entries(fixedSections).forEach(([course, section]) => {
+                let btn = document.querySelector('.section-btn[data-course="'+course+' "][data-section="'+section+'"]') || document.querySelector('.section-btn[data-course="'+course+' "][data-section="'+section.replace(/"/g, '\\"')+'"]');
+                if (!btn) btn = document.querySelector('.section-btn[data-course="'+course+' "][data-section="'+section+'"]');
+                if (btn) btn.classList.add('active');
+            });
+            Object.entries(fixedLabs).forEach(([course, lab]) => {
+                let btn = document.querySelector('.lab-btn[data-course="'+course+' "][data-lab="'+lab+'"]') || document.querySelector('.lab-btn[data-course="'+course+' "][data-lab="'+lab.replace(/"/g, '\\"')+'"]');
+                if (!btn) btn = document.querySelector('.lab-btn[data-course="'+course+' "][data-lab="'+lab+'"]');
+                if (btn) btn.classList.add('active');
+            });
+
+            // Modal open/close
+            document.getElementById('fixed-sections-btn').onclick = function() {
+                document.getElementById('fixed-sections-modal').style.display = 'block';
+            };
+            document.getElementById('close-fixed-sections').onclick = function() {
+                document.getElementById('fixed-sections-modal').style.display = 'none';
+            };
+            // Section/lab selection logic
+            document.querySelectorAll('.section-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const course = this.getAttribute('data-course');
+                    // Only one section per course
+                    document.querySelectorAll('.section-btn[data-course="'+course+'"]').forEach(b => b.classList.remove('active'));
+                    if (!this.classList.contains('active')) {
+                        this.classList.add('active');
+                    }
+                });
+            });
+            document.querySelectorAll('.lab-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const course = this.getAttribute('data-course');
+                    // Only one lab per course
+                    document.querySelectorAll('.lab-btn[data-course="'+course+'"]').forEach(b => b.classList.remove('active'));
+                    if (!this.classList.contains('active')) {
+                        this.classList.add('active');
+                    }
+                });
+            });
+            document.getElementById('save-fixed-sections').onclick = function() {
+                document.getElementById('fixed-sections-modal').style.display = 'none';
+            };
+            // On form submit, serialize current active selections into hidden fields
+            document.getElementById('preferences-form').addEventListener('submit', function() {
+                let fixedSections = {};
+                let fixedLabs = {};
+                document.querySelectorAll('.section-btn.active').forEach(btn => {
+                    const course = btn.getAttribute('data-course');
+                    const section = btn.getAttribute('data-section');
+                    fixedSections[course] = section;
+                });
+                document.querySelectorAll('.lab-btn.active').forEach(btn => {
+                    const course = btn.getAttribute('data-course');
+                    const lab = btn.getAttribute('data-lab');
+                    fixedLabs[course] = lab;
+                });
+                document.getElementById('fixed_sections_input').value = JSON.stringify(fixedSections);
+                document.getElementById('fixed_labs_input').value = JSON.stringify(fixedLabs);
+                // Debug print
+                console.log('Submitting fixed_sections:', document.getElementById('fixed_sections_input').value);
+                console.log('Submitting fixed_labs:', document.getElementById('fixed_labs_input').value);
+            });
+        });
+        </script>
+        <style>
+        .section-btn.active, .lab-btn.active {
+            background: linear-gradient(135deg, #a18ffb 0%, #f8fafc 100%) !important;
+            color: #22223b !important;
+            border: 1.5px solid #a18ffb !important;
+            box-shadow: 0 2px 8px rgba(161,143,251,0.15);
+            opacity: 1;
+        }
+        .section-btn, .lab-btn {
+            opacity: 0.7;
+        }
+        </style>
 
         {% if not preferences_submitted %}
             <div class="card fade-in" style="text-align:center; margin-top:2rem;">
