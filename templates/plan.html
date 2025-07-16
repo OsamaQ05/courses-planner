@@ -574,7 +574,10 @@
                                         <td class="plan-semester-td" style="background:rgba(102,126,234,0.08); border-radius:12px; padding:1.5rem 1.5rem;">
                                             {% set sem = sems_by_year[year][i] %}
                                             {% if sem %}
-                                                <div style="font-weight:600; color:#a18ffb; margin-bottom:0.5rem;">{{ sem_names[i] }}</div>
+                                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
+                                                    <span style="font-weight:600; color:#a18ffb;">{{ sem_names[i] }}</span>
+                                                    <span style="background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; font-size:0.98rem; font-weight:700; border-radius:8px; padding:0.18em 0.7em; margin-left:0.7em; box-shadow:0 1px 6px rgba(102,126,234,0.10);">{{ sem.credits }} cr</span>
+                                                </div>
                                                 <ul class="course-list">
                                                     {% for course in sem.courses %}
                                                         <li class="course-item"
