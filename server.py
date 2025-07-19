@@ -54,7 +54,10 @@ def home():
         model = scheduler.build_model3(alpha=0, beta=0, gamma=80, delta=30)
         model.optimize()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         scheduler.get_full_solution()
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         # for output
@@ -72,7 +75,10 @@ def home():
         # Transform plan to structured format for frontend
         plan = []
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
         unlocks_map = {code: [] for code in courses}
         for c, info in courses.items():
             for prereq in info.get('prerequisites', []):
@@ -114,11 +120,14 @@ def home():
 
     return render_template('index.html')
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 @app.route('/next_semester', methods=['POST'])
 def next_semester():
     major_index = int(request.form['major'])
     completed_raw = request.form['completed']
 =======
+=======
+>>>>>>> Stashed changes
 
 @app.route('/next_semester', methods=['POST', 'GET'])
 def next_semester():
@@ -151,8 +160,11 @@ def next_semester():
     courses = fall25_time_data
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     # Use model 2 for timetable generation
 =======
+=======
+>>>>>>> Stashed changes
     import json
     fixed_sections = request.form.get('fixed_sections', '{}')
     fixed_labs = request.form.get('fixed_labs', '{}')
@@ -213,6 +225,9 @@ def next_semester():
         print(f"  Labs: {course.get('labs', [])[:3]}")
     print("========================\n")
     # --- LOGGING END ---
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     scheduler = CourseScheduler(
         courses=fall25_time_data,  # Use loader data
@@ -220,9 +235,12 @@ def next_semester():
         required=set(planned_courses_data.keys())
     )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     desired_courses = list(time_data.keys())
     scheduler.build_model2(desired_courses=desired_courses)
 =======
+=======
+>>>>>>> Stashed changes
     desired_courses = planned_courses
     print('fixed_sections:', fixed_sections)
     print('fixed_labs:', fixed_labs)
