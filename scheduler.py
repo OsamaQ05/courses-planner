@@ -104,7 +104,7 @@ class CourseScheduler:
                     vtype=GRB.BINARY, name=f"x_{course}_sec_{section}"
                 )
         
-            # add lanbs
+            # add labs
             for lab in labs:
                 self.x2[(course, lab)] = self.model2.addVar(
                     vtype=GRB.BINARY, name=f"x_{course}_lab_{lab}"
@@ -205,7 +205,12 @@ class CourseScheduler:
         for course in self.remaining_courses:
             if 'available_in' not in self.courses[course]:
                 continue
-            not_available_in= offered_sems- self.courses[course]['available_in']
+            available_in = self.courses[course].get('available_in')
+            if not available_in:
+                available_in = set()
+            else:
+                available_in = set(available_in)
+            not_available_in = offered_sems - available_in
             for s in semesters:
                 if s % 3 == 1 and 'fall' in not_available_in:
                     self.model3.addConstr(self.y[course, s] == 0)
@@ -318,6 +323,8 @@ class CourseScheduler:
         days=list(string[:i])
     
         temp= string[i:]
+        if not temp or '-' not in temp:
+            return days, '', ''
         start, end = temp.split('-')
         return days, start, end
 
@@ -325,11 +332,19 @@ class CourseScheduler:
     @staticmethod
     def convert_to_set(str):
         def to_minutes(t):
+            if not t or not isinstance(t, str) or not t.strip().isdigit():
+                return 0
             mins_diff=0
             if ':' in t:
-                hour, minute = map(int, t.split(':'))
+                try:
+                    hour, minute = map(int, t.split(':'))
+                except Exception:
+                    return 0
             else:
-                hour, minute = int(t), 0
+                try:
+                    hour, minute = int(t), 0
+                except Exception:
+                    return 0
             if hour >= 9:
                 mins_diff+= (hour-9)  * 60 
             else:
@@ -337,17 +352,19 @@ class CourseScheduler:
             mins_diff+= minute
             return mins_diff
         days, start, end = CourseScheduler.parse_time(str)
+        if not start or not end:
+            return set()
         start_min = to_minutes(start)
         end_min = to_minutes(end)
-    
+        if start_min == end_min:
+            return set()
         start_point= start_min//15
         end_point= end_min//15
-        
         time_set= set()
         dic=  {'M': 0, 'T': 48, 'W': 96, 'H': 144} 
         for i in days:
             for j in  range(start_point, end_point):
-                time_set.add(dic[i] + j)
+                time_set.add(dic.get(i, 0) + j)
         return time_set
 
     
@@ -359,18 +376,27 @@ class CourseScheduler:
     def year_of_semester(s):
         return int((s-1) // 3 + 1 )
     
+    @staticmethod
     def to_minutes(t):
-            mins_diff=0
-            if ':' in t:
+        if not t or not isinstance(t, str) or not t.strip().isdigit():
+            return 0
+        mins_diff = 0
+        if ':' in t:
+            try:
                 hour, minute = map(int, t.split(':'))
-            else:
+            except Exception:
+                return 0
+        else:
+            try:
                 hour, minute = int(t), 0
-            if hour >= 9:
-                mins_diff+= (hour-9)  * 60 
-            else:
-                mins_diff+= 180+ hour*60
-            mins_diff+= minute
-            return mins_diff
+            except Exception:
+                return 0
+        if hour >= 9:
+            mins_diff += (hour-9) * 60
+        else:
+            mins_diff += 180 + hour*60
+        mins_diff += minute
+        return mins_diff
 
 
 

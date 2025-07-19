@@ -879,89 +879,90 @@
         function loadCourses() {
             const major = document.getElementById("major").value;
             const container = document.getElementById("courses-container");
-            
-            // Show loading state
             container.innerHTML = '<div style="text-align: center; padding: 2rem;"><div class="spinner"></div><p>Loading courses...</p></div>';
-            
+
             fetch(`/get_courses?major=${major}`)
                 .then(response => response.json())
                 .then(data => {
                     container.innerHTML = "";
-                    
-                    // Group courses by year
+
+                    // Group courses by year and semester
                     const yearGroups = {
-                        freshman: [],
-                        sophomore: [],
-                        junior: [],
-                        senior: []
+                        freshman: { fall: [], spring: [], summer: [] },
+                        sophomore: { fall: [], spring: [], summer: [] },
+                        junior: { fall: [], spring: [], summer: [] },
+                        senior: { fall: [], spring: [], summer: [] }
                     };
 
-                    data.forEach(course => {
-                        const placement = getCoursePlacement(course.code);
-                        if (!yearGroups[placement.year]) {
-                            yearGroups[placement.year] = [];
-                        }
-                        yearGroups[placement.year].push(course);
-                    });
+                    if (major == 0) { // Computer Science
+                        data.forEach(course => {
+                            const placement = coursePlacement[course.code] || { year: 'freshman', semester: 'fall' };
+                            yearGroups[placement.year][placement.semester].push(course);
+                        });
+                    } else {
+                        data.forEach(course => {
+                            // Assume backend returns year and semester for each course
+                            const year = course.year || 'freshman';
+                            const semester = course.semester || 'fall';
+                            yearGroups[year][semester].push(course);
+                        });
+                    }
 
-                    // Create year group containers
-                    Object.entries(yearGroups).forEach(([year, courses]) => {
-                        if (courses.length > 0) {
+                    // Render year/semester groups
+                    Object.entries(yearGroups).forEach(([year, semesters]) => {
+                        let hasCourses = Object.values(semesters).some(arr => arr.length > 0);
+                        if (hasCourses) {
                             const yearDiv = document.createElement("div");
                             yearDiv.className = `year-group ${year}`;
-                            
+
                             const yearTitle = document.createElement("div");
                             yearTitle.className = "year-title";
                             yearTitle.textContent = year.charAt(0).toUpperCase() + year.slice(1) + " Year";
-                            
+
                             const semesterSections = document.createElement("div");
                             semesterSections.className = "semester-sections";
-                            
-                            // Create semester sections
+
                             ['fall', 'spring', 'summer'].forEach(semester => {
-                                const semesterSection = document.createElement("div");
-                                semesterSection.className = `semester-section ${semester}`;
-                                
-                                const semesterTitle = document.createElement("div");
-                                semesterTitle.className = "semester-title";
-                                semesterTitle.textContent = semester.charAt(0).toUpperCase() + semester.slice(1);
-                                
-                                const coursesGrid = document.createElement("div");
-                                coursesGrid.className = "courses-grid";
-                                
-                                // Filter courses for this semester using hardcoded placement
-                                const semesterCourses = courses.filter(course => {
-                                    const placement = getCoursePlacement(course.code);
-                                    return placement.semester === semester;
-                                });
-                                
-                                semesterCourses.forEach(course => {
-                                    const div = document.createElement("div");
-                                    div.className = "course-item";
-                                    div.id = course.code;
-                                    div.onclick = () => toggleCourse(course.code);
-                                    div.innerHTML = `
-                                        <div class="course-code">${course.code}</div>
-                                        <div class="course-name">${course.name}</div>
-                                        <div class="course-details">
-                                            <h4>${course.code} - ${course.name}</h4>
-                                            <p><strong>Credits:</strong> ${course.credits}</p>
-                                            <p><strong>Weight:</strong> ${course.weight}</p>
-                                            <p><strong>Year:</strong> ${course.year || 'Not specified'}</p>
-                                            <p><strong>Available:</strong> ${course.available_in ? course.available_in.join(', ') : 'Fall'}</p>
-                                            ${course.prerequisites && course.prerequisites.length > 0 ? 
-                                                `<p><strong>Prerequisites:</strong> ${course.prerequisites.join(', ')}</p>` : 
-                                                '<p><strong>Prerequisites:</strong> None</p>'}
-                                        </div>
-                                    `;
-                                    coursesGrid.appendChild(div);
-                                });
-                                
-                                semesterSection.appendChild(semesterTitle);
-                                semesterSection.appendChild(coursesGrid);
-                                semesterSections.appendChild(semesterSection);
+                                const semesterCourses = semesters[semester];
+                                if (semesterCourses.length > 0) {
+                                    const semesterSection = document.createElement("div");
+                                    semesterSection.className = `semester-section ${semester}`;
+
+                                    const semesterTitle = document.createElement("div");
+                                    semesterTitle.className = "semester-title";
+                                    semesterTitle.textContent = semester.charAt(0).toUpperCase() + semester.slice(1);
+
+                                    const coursesGrid = document.createElement("div");
+                                    coursesGrid.className = "courses-grid";
+
+                                    semesterCourses.forEach(course => {
+                                        const div = document.createElement("div");
+                                        div.className = "course-item";
+                                        div.id = course.code;
+                                        div.onclick = () => toggleCourse(course.code);
+                                        div.innerHTML = `
+                                            <div class="course-code">${course.code}</div>
+                                            <div class="course-name">${course.name}</div>
+                                            <div class="course-details">
+                                                <h4>${course.code} - ${course.name}</h4>
+                                                <p><strong>Credits:</strong> ${course.credits}</p>
+                                                <p><strong>Weight:</strong> ${course.weight}</p>
+                                                <p><strong>Year:</strong> ${year.charAt(0).toUpperCase() + year.slice(1)}</p>
+                                                <p><strong>Semester:</strong> ${semester.charAt(0).toUpperCase() + semester.slice(1)}</p>
+                                                ${course.prerequisites && course.prerequisites.length > 0 ? 
+                                                    `<p><strong>Prerequisites:</strong> ${course.prerequisites.join(', ')}</p>` : 
+                                                    '<p><strong>Prerequisites:</strong> None</p>'}
+                                            </div>
+                                        `;
+                                        coursesGrid.appendChild(div);
+                                    });
+
+                                    semesterSection.appendChild(semesterTitle);
+                                    semesterSection.appendChild(coursesGrid);
+                                    semesterSections.appendChild(semesterSection);
+                                }
                             });
-                            
+
                             yearDiv.appendChild(yearTitle);
                             yearDiv.appendChild(semesterSections);
                             container.appendChild(yearDiv);
