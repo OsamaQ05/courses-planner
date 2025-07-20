@@ -544,7 +544,8 @@
                 <button type="button" id="close-fixed-sections" class="btn btn-secondary" style="position:absolute; top:1rem; right:1rem;">Close</button>
                 <h2 style="text-align:center; margin-bottom:2rem; color:#f8fafc;">Select Sections and Labs to Fix</h2>
                 <div style="display:flex; flex-wrap:wrap; gap:2rem; justify-content:center;">
-                    {% for course, cinfo in time_data.items() %}
+                    {% set registered_courses = registered_raw.split(',') if registered_raw else [] %}
+                    {% for course, cinfo in time_data.items() if course in registered_courses %}
                     <div style="min-width:180px; max-width:220px; background:rgba(102,126,234,0.08); border-radius:12px; padding:1rem;">
                         <div style="font-size:1.1rem; font-weight:700; color:#f8fafc; margin-bottom:0.7rem; text-align:center;">{{ cinfo.name }}</div>
                         <div style="display:flex; flex-direction:column; gap:0.5rem;">

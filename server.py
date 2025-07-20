@@ -2,6 +2,7 @@ from flask import redirect, url_for
 from flask import Flask, jsonify, render_template, request
 from scheduler import CourseScheduler
 from scheduler_data import plans, time_data
+from fall25_courses_data import fall25_courses
 #import io
 #import sys
 import gurobipy as gp
@@ -114,7 +115,8 @@ def next_semester():
             start_ampm='AM',
             end_hour=8,
             end_ampm='PM',
-            avoid_gaps=False
+            avoid_gaps=False,
+            time_data=fall25_courses
         )
 
     # POST: check if preferences are submitted
@@ -168,16 +170,16 @@ def next_semester():
             end_hour=end_hour,
             end_ampm=end_ampm,
             avoid_gaps=avoid_gaps,
-            time_data=time_data
+            time_data=fall25_courses
         )
 
     # Use model 2 for timetable generation
     scheduler = CourseScheduler(
-        courses=time_data,  # Use time_data for sections/times
+        courses=fall25_courses,  # Use time_data for sections/times
         completed=completed_set,
         required=set(courses.keys())
     )
-    desired_courses = list(time_data.keys())
+    desired_courses = list(registered_set)
     print('fixed_sections:', fixed_sections)
     print('fixed_labs:', fixed_labs)
     scheduler.build_model2(desired_courses=desired_courses, fixed_sections=fixed_sections, fixed_labs=fixed_labs)
@@ -190,7 +192,7 @@ def next_semester():
     import random
     color_palette = ['#3182ce', '#38a169', '#e53e3e', '#d69e2e', '#805ad5', '#319795', '#f56565', '#ed8936', '#ecc94b', '#48bb78', '#4299e1', '#9f7aea']
     course_colors = {}
-    for idx, course in enumerate(time_data.keys()):
+    for idx, course in enumerate(desired_courses):
         course_colors[course] = color_palette[idx % len(color_palette)]
 
     # Extract all solutions from model 2
@@ -248,7 +250,7 @@ def next_semester():
     # Count labs actually scheduled in this semester (from timetable_courses)
     lab_count = 0
     for course in desired_courses:
-        if 'labs' in time_data[course]:
+        if course in fall25_courses and 'labs' in fall25_courses[course]:
             lab_count += 1
 
     # Just take the first 10 timetables (default logic)
@@ -270,7 +272,7 @@ def next_semester():
         end_hour=end_hour,
         end_ampm=end_ampm,
         avoid_gaps=avoid_gaps,
-        time_data=time_data,
+        time_data=fall25_courses,
         fixed_sections=fixed_sections,
         fixed_labs=fixed_labs
     )
