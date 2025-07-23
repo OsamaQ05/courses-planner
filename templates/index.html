@@ -563,6 +563,64 @@
             animation: fadeInUp 0.6s ease-out;
         }
 
+        /* Custom styled select-all checkbox */
+        /* Hide the native checkbox */
+        .select-all-checkbox {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            height: 0;
+            width: 0;
+        }
+
+        /* Custom checkbox container */
+        .select-all-label {
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding-left: 28px;
+            font-size: 1rem;
+            color: #a18ffb;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Custom checkmark box */
+        .select-all-label .custom-checkmark {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 22px;
+            width: 22px;
+            background: #22223b;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.10);
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+
+        /* Remove the checkmark/indicator */
+        .select-all-label .custom-checkmark:after {
+            display: none;
+        }
+
+        /* Fill the box when checked */
+        .select-all-checkbox:checked + .custom-checkmark {
+            background: #a18ffb;
+            border-color: #a18ffb;
+            box-shadow: 0 0 8px 2px rgba(161,143,251,0.18);
+        }
+
+        /* Focus/hover effect */
+        .select-all-checkbox:focus + .custom-checkmark,
+        .select-all-checkbox:hover + .custom-checkmark {
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.25);
+            border-color: #a18ffb;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -679,6 +737,25 @@
                 item.classList.add("completed");
             }
             document.getElementById("completed").value = Array.from(selectedCourses).join(",");
+
+            // --- New: Sync 'All' checkbox for this semester ---
+            // Find the parent semester-section
+            let semesterSection = item.closest('.semester-section');
+            if (semesterSection) {
+                // Find all course items in this section
+                let courseDivs = semesterSection.querySelectorAll('.course-item');
+                let allChecked = true;
+                courseDivs.forEach(div => {
+                    if (!selectedCourses.has(div.id)) {
+                        allChecked = false;
+                    }
+                });
+                // Find the select-all checkbox in this section
+                let selectAll = semesterSection.querySelector('.select-all-checkbox');
+                if (selectAll) {
+                    selectAll.checked = allChecked;
+                }
+            }
         }
 
         function getYearGroup(course) {
@@ -792,7 +869,59 @@
                             ['fall', 'spring', 'summer'].forEach(semester => {
                                 const semesterSection = document.createElement("div");
                                 semesterSection.className = `semester-section ${semester}`;
-                                
+                                semesterSection.style.position = "relative";
+
+                                // Add Select All checkbox
+                                const selectAllDiv = document.createElement("div");
+                                selectAllDiv.style.position = "absolute";
+                                selectAllDiv.style.top = "10px";
+                                selectAllDiv.style.right = "10px";
+                                selectAllDiv.style.zIndex = "2";
+                                selectAllDiv.style.display = "flex";
+                                selectAllDiv.style.alignItems = "center";
+                                const selectAllCheckbox = document.createElement("input");
+                                selectAllCheckbox.type = "checkbox";
+                                selectAllCheckbox.id = `select-all-${year}-${semester}`;
+                                selectAllCheckbox.title = "Select all courses in this semester";
+                                selectAllCheckbox.style.marginRight = "4px";
+                                const selectAllLabel = document.createElement("label");
+                                selectAllLabel.htmlFor = selectAllCheckbox.id;
+                                selectAllLabel.style.fontSize = "0.9rem";
+                                selectAllLabel.style.color = "#a0aec0";
+                                selectAllLabel.textContent = "All";
+                                selectAllCheckbox.className = "select-all-checkbox";
+                                selectAllLabel.className = "select-all-label";
+                                selectAllLabel.htmlFor = selectAllCheckbox.id;
+                                // Clear label text (will add as text node)
+                                selectAllLabel.textContent = "";
+                                // Create the custom checkmark span
+                                const customCheckmark = document.createElement("span");
+                                customCheckmark.className = "custom-checkmark";
+                                // Append input, checkmark, and text to label
+                                selectAllLabel.appendChild(selectAllCheckbox);
+                                selectAllLabel.appendChild(customCheckmark);
+                                selectAllLabel.appendChild(document.createTextNode('All'));
+                                // Append label to div
+                                selectAllDiv.appendChild(selectAllLabel);
+                                semesterSection.appendChild(selectAllDiv);
+
+                                // Handler for select all
+                                selectAllCheckbox.addEventListener('change', function() {
+                                    const check = this.checked;
+                                    const courseDivs = semesterSection.querySelectorAll('.course-item');
+                                    courseDivs.forEach(div => {
+                                        const code = div.id;
+                                        if (check && !selectedCourses.has(code)) {
+                                            selectedCourses.add(code);
+                                            div.classList.add("completed");
+                                        } else if (!check && selectedCourses.has(code)) {
+                                            selectedCourses.delete(code);
+                                            div.classList.remove("completed");
+                                        }
+                                    });
+                                    document.getElementById("completed").value = Array.from(selectedCourses).join(",");
+                                });
+
                                 const semesterTitle = document.createElement("div");
                                 semesterTitle.className = "semester-title";
                                 semesterTitle.textContent = semester.charAt(0).toUpperCase() + semester.slice(1);
@@ -828,6 +957,10 @@
                                     coursesGrid.appendChild(div);
                                 });
                                 
+                                // Set the initial state of the select-all checkbox
+                                let allChecked = semesterCourses.length > 0 && semesterCourses.every(course => selectedCourses.has(course.code));
+                                selectAllCheckbox.checked = allChecked;
+
                                 semesterSection.appendChild(semesterTitle);
                                 semesterSection.appendChild(coursesGrid);
                                 semesterSections.appendChild(semesterSection);

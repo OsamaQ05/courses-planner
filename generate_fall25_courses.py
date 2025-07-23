@@ -7,7 +7,11 @@ def parse_time(time_str):
         return ''
     hour = int(time_str[:2])
     minute = int(time_str[2:])
-    return f"{hour}:{minute:02d}"
+    # Convert to 12-hour format
+    hour_12 = hour % 12
+    if hour_12 == 0:
+        hour_12 = 12
+    return f"{hour_12}:{minute:02d}"
 
 def extract_days(mt):
     days = ''
@@ -32,7 +36,7 @@ for i in range(1, 25):
         data = json.load(f)
         for entry in data.get('data', []):
             code = f"{entry.get('subject', '').strip()}{entry.get('courseNumber', '').strip()}"
-            name = entry.get('subjectDescription', '').strip()
+            name = entry.get('courseTitle', '').strip()
             if not code:
                 continue
             if code not in fall25_courses:

@@ -175,14 +175,16 @@ class CourseScheduler:
         #credits per sem constrain
 
         for s in semesters:
+            t = s + 1 - self.starting_semester
             total_credits = gp.quicksum(self.y[(course, s)] * self.courses[course]['credits']for course in self.remaining_courses)
-            if s%3==0:# so if summer....
+            
+            if t % 3 == 0: 
                  self.model3.addConstr(total_credits <= 6, name=f"max credits for sem {s}") 
-            elif s>12:# for the fifth year, max is 18 but min is 0 
+            elif s > 12: # for the fifth 
                  self.model3.addConstr(total_credits <= self.max_credits, name=f"max credits for sem {s}")
             else:  
                 self.model3.addConstr(total_credits <= self.max_credits, name=f"max credits for sem {s}")
-                self.model3.addConstr(total_credits >= self.min_credits, name=f"min credits for sem {s}")# 2+2=4
+                self.model3.addConstr(total_credits >= self.min_credits, name=f"min credits for sem {s}")
 
         # restricted cources constrain e.g sdp
         
@@ -219,11 +221,12 @@ class CourseScheduler:
                 continue
             not_available_in= offered_sems- self.courses[course]['available_in']
             for s in semesters:
-                if s % 3 == 1 and 'fall' in not_available_in:
+                t = s + 1 - self.starting_semester
+                if t % 3 == 1 and 'fall' in not_available_in:
                     self.model3.addConstr(self.y[course, s] == 0)
-                elif s % 3 == 2 and 'spring' in not_available_in:
+                elif t % 3 == 2 and 'spring' in not_available_in:
                     self.model3.addConstr(self.y[course, s] == 0)
-                elif s % 3 == 0 and 'summer' in not_available_in:
+                elif t % 3 == 0 and 'summer' in not_available_in:
                     self.model3.addConstr(self.y[course, s] == 0)
             
 
@@ -272,6 +275,10 @@ class CourseScheduler:
         objective_expr = alpha*importance_term + beta*workload_balance_term +   gamma* penalty_term + delta*fifth_year_penalty 
         self.model3.setObjective(objective_expr, GRB.MINIMIZE)
         return self.model3
+    
+
+    def add_fixed_course(self, course, semester):
+        self.model3.addConstr(self.y[(course, semester)] == 1)
         
 
 
