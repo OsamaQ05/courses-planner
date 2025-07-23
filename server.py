@@ -425,13 +425,12 @@ Here is the user request:
             sem = int(m.group(2))
             new_fixed_courses.append([code, sem])
 
-    # Store new fixed courses
+    # for  new fixed courses
     for code, sem in new_fixed_courses:
         add_fixed_course_to_store(code, sem)
-    # Always reload all fixed courses
     all_fixed_courses = load_fixed_courses()
 
-    # Rebuild the scheduler and apply all fixed courses and special params
+
     scheduler = CourseScheduler(
         courses=courses,
         completed=completed_set,
@@ -446,10 +445,10 @@ Here is the user request:
         scheduler.add_fixed_course(code, sem)
     model.optimize()
 
-    # Check for infeasibility
+    # error handelling 
     if model.status == gp.GRB.INFEASIBLE:
         last_plan = load_last_plan()
-        msg = "No solution found for your request. Showing your previous plan."
+        msg = "No solution found for your request."
         if last_plan:
             rendered_plan = render_template(
                 'plan.html',
