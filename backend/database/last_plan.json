@@ -1,0 +1,318 @@
+{
+  "plan": [
+    {
+      "number": 7,
+      "credits": 16,
+      "courses": [
+        {
+          "code": "BUSS322",
+          "name": "Innovation and Entrepreneurship",
+          "credits": 3,
+          "prerequisites": [],
+          "unlocks": []
+        },
+        {
+          "code": "ECCE354",
+          "name": "Operating Systems",
+          "credits": 3,
+          "prerequisites": [
+            "COSC201"
+          ],
+          "unlocks": [
+            "COSC340"
+          ]
+        },
+        {
+          "code": "COSC330",
+          "name": "Artificial Intelligence",
+          "credits": 3,
+          "prerequisites": [
+            "ECCE230"
+          ],
+          "unlocks": [
+            "TECH_ELECTIVE_1",
+            "TECH_ELECTIVE_3"
+          ]
+        },
+        {
+          "code": "GENS300",
+          "name": "Career Preparation",
+          "credits": 1,
+          "prerequisites": [
+            "GENS100"
+          ],
+          "unlocks": [
+            "GENS400"
+          ]
+        },
+        {
+          "code": "BUXXX",
+          "name": "BUSS course",
+          "credits": 3,
+          "prerequisites": [],
+          "unlocks": []
+        },
+        {
+          "code": "COSC301",
+          "name": "Automata",
+          "credits": 3,
+          "prerequisites": [
+            "COSC101",
+            "MATH234"
+          ],
+          "unlocks": [
+            "COSC312",
+            "COSC320"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "credits": 12,
+      "courses": [
+        {
+          "code": "COSC312",
+          "name": "Algorithm Design and Analysis",
+          "credits": 3,
+          "prerequisites": [
+            "COSC301",
+            "ECCE342"
+          ],
+          "unlocks": [
+            "COSC497",
+            "TECH_ELECTIVE_5"
+          ]
+        },
+        {
+          "code": "COSC320",
+          "name": "Programming Languages",
+          "credits": 3,
+          "prerequisites": [
+            "COSC301"
+          ],
+          "unlocks": [
+            "TECH_ELECTIVE_2",
+            "TECH_ELECTIVE_3"
+          ]
+        },
+        {
+          "code": "COSC340",
+          "name": "Computer Security",
+          "credits": 3,
+          "prerequisites": [
+            "ECCE354"
+          ],
+          "unlocks": [
+            "TECH_ELECTIVE_4"
+          ]
+        },
+        {
+          "code": "ECCE434",
+          "name": "Database Systems",
+          "credits": 3,
+          "prerequisites": [
+            "COSC336"
+          ],
+          "unlocks": []
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "credits": 1,
+      "courses": [
+        {
+          "code": "ENGR399",
+          "name": "internship 1",
+          "credits": 1,
+          "prerequisites": [],
+          "unlocks": [
+            "ENGR399(2)"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "credits": 14,
+      "courses": [
+        {
+          "code": "TECH_ELECTIVE_3",
+          "name": "Technical Elective 3",
+          "credits": 3,
+          "prerequisites": [
+            "COSC320",
+            "COSC330"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "ECCE356",
+          "name": "Computer Networks",
+          "credits": 4,
+          "prerequisites": [
+            "COSC201"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "COSC497",
+          "name": "Senior Design Project I",
+          "credits": 3,
+          "prerequisites": [
+            "COSC312"
+          ],
+          "unlocks": [
+            "COSC498"
+          ]
+        },
+        {
+          "code": "GENS400",
+          "name": "Enhancing Employability & Readiness",
+          "credits": 1,
+          "prerequisites": [
+            "GENS300"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "TECH_ELECTIVE_5",
+          "name": "Technical Elective 5",
+          "credits": 3,
+          "prerequisites": [
+            "COSC312"
+          ],
+          "unlocks": []
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "credits": 12,
+      "courses": [
+        {
+          "code": "TECH_ELECTIVE_1",
+          "name": "Technical Elective 1",
+          "credits": 3,
+          "prerequisites": [
+            "COSC330"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "TECH_ELECTIVE_2",
+          "name": "Technical Elective 2",
+          "credits": 3,
+          "prerequisites": [
+            "COSC320"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "COSC498",
+          "name": "Senior Design Project II",
+          "credits": 3,
+          "prerequisites": [
+            "COSC497"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "TECH_ELECTIVE_4",
+          "name": "Technical Elective 4",
+          "credits": 3,
+          "prerequisites": [
+            "COSC340"
+          ],
+          "unlocks": []
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "credits": 1,
+      "courses": [
+        {
+          "code": "ENGR399(2)",
+          "name": "internship 2",
+          "credits": 1,
+          "prerequisites": [
+            "ENGR399"
+          ],
+          "unlocks": []
+        }
+      ]
+    }
+  ],
+  "major_index": 0,
+  "completed_raw": "GENS101,ENGL101,MATH111,CHEM115,GENS100,COSC336,COSC101,ECCE230,MATH204,MATH242,ENGR202,ENGL102,MATH112,PHYS121,COSC114,COSC201,ECCE342,MATH232,MATH214,MATH234,HUMAXXX,HUMA123",
+  "completed_semesters": 6,
+  "total_semesters": 6,
+  "total_courses": 21,
+  "total_credits": 56,
+  "avg_credits_per_semester": 9.33,
+  "first_semester_courses": [
+    {
+      "code": "BUSS322",
+      "name": "Innovation and Entrepreneurship",
+      "credits": 3,
+      "prerequisites": [],
+      "unlocks": []
+    },
+    {
+      "code": "ECCE354",
+      "name": "Operating Systems",
+      "credits": 3,
+      "prerequisites": [
+        "COSC201"
+      ],
+      "unlocks": [
+        "COSC340"
+      ]
+    },
+    {
+      "code": "COSC330",
+      "name": "Artificial Intelligence",
+      "credits": 3,
+      "prerequisites": [
+        "ECCE230"
+      ],
+      "unlocks": [
+        "TECH_ELECTIVE_1",
+        "TECH_ELECTIVE_3"
+      ]
+    },
+    {
+      "code": "GENS300",
+      "name": "Career Preparation",
+      "credits": 1,
+      "prerequisites": [
+        "GENS100"
+      ],
+      "unlocks": [
+        "GENS400"
+      ]
+    },
+    {
+      "code": "BUXXX",
+      "name": "BUSS course",
+      "credits": 3,
+      "prerequisites": [],
+      "unlocks": []
+    },
+    {
+      "code": "COSC301",
+      "name": "Automata",
+      "credits": 3,
+      "prerequisites": [
+        "COSC101",
+        "MATH234"
+      ],
+      "unlocks": [
+        "COSC312",
+        "COSC320"
+      ]
+    }
+  ]
+}
