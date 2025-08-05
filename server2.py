@@ -9,11 +9,11 @@ from gurobipy import GRB
 
 
 app = Flask(__name__) 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-db = SQLAlchemy(app) 
-api = Api(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db' # sqlite database, where to store user data
+db = SQLAlchemy(app) #initialize SQLAlchemy with the Flask app
+api = Api(app) # initialize Flask-RESTful API
 
-class UserModel(db.Model): 
+class UserModel(db.Model): #define the User model
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(80), unique=True, nullable=False)
@@ -24,18 +24,18 @@ class UserModel(db.Model):
     def __repr__(self): 
         return f"User(name = {self.name}, email = {self.email})"
 class UserScheduleResult(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user_model.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key=True) #unique identifier for each schedule result
+    user_id = db.Column(db.Integer, db.ForeignKey('user_model.id'), nullable=False) #foreign key used to relate each schedule result to a user
     plan_json = db.Column(db.Text)
 
-user_args = reqparse.RequestParser()
+user_args = reqparse.RequestParser()#requirements for user data
 user_args.add_argument('name', type=str, required=True, help="Name cannot be blank")
 user_args.add_argument('email', type=str, required=True, help="Email cannot be blank")
 user_args.add_argument('major_index', type=int, required=True, help="Major index required")
 user_args.add_argument('completed_courses', type=str, required=True, help="Completed courses required")
 user_args.add_argument('completed_semesters', type=int, required=True, help="Completed semesters required")
 
-userFields = {
+userFields = {#output structure
     'id': fields.Integer,
     'name': fields.String,
     'email': fields.String,
@@ -44,9 +44,9 @@ userFields = {
     'completed_semesters': fields.Integer,
 }
 
-
+#To handle actions for all users
 class Users(Resource):
-    @marshal_with(userFields)
+    @marshal_with(userFields)#format output using userFields
     def get(self):
         users = UserModel.query.all() 
         return users 
@@ -65,7 +65,7 @@ class Users(Resource):
         db.session.commit()
         users = UserModel.query.all()
         return users, 201
-    
+# To handle actions for a specific user by ID    
 class User(Resource):
     @marshal_with(userFields)
     def get(self, id):
@@ -317,7 +317,7 @@ def login():
 
     return {"message": "Login successful", "user_id": user.id}, 200
 
-# HTML and JavaScript for login page
+# HTML and JavaScript for login page TESTING, not completed
 @app.route('/')
 def home():
     return '''
