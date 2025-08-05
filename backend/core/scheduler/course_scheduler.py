@@ -87,9 +87,15 @@ class CourseScheduler:
 
 
     
-    def build_model2(self, desired_courses):
+    def build_model2(self, desired_courses, fixed_sections=None, fixed_labs=None):
+        if fixed_sections is None:
+            fixed_sections = {}
+        if fixed_labs is None:
+            fixed_labs = {}
         self.model2 = gp.Model("Time Scheduler")
         self.model2.setParam("OutputFlag", 1)
+        print('fixed_sections:', fixed_sections)
+        print('fixed_labs:', fixed_labs)
         
         self.x2 = {}
         
@@ -104,19 +110,19 @@ class CourseScheduler:
                     vtype=GRB.BINARY, name=f"x_{course}_sec_{section}"
                 )
         
-            # add lanbs
+            # add labs
             for lab in labs:
                 self.x2[(course, lab)] = self.model2.addVar(
                     vtype=GRB.BINARY, name=f"x_{course}_lab_{lab}"
                 )
     
-            # one section consterain
+            # one section constraint
             self.model2.addConstr(
                 gp.quicksum(self.x2[(course, sec)] for sec in sections) == 1,
                 name=f"choose_one_section_{course}"
             )
     
-            # lab constrain 
+            # lab constraint 
             if labs:
                 self.model2.addConstr(
                     gp.quicksum(self.x2[(course, lab)] for lab in labs) == 1,
@@ -134,8 +140,13 @@ class CourseScheduler:
                         self.x2[(c1, t1)] + self.x2[(c2, t2)] <= 1,
                         name=f"time_conflict_{c1}_{t1}_vs_{c2}_{t2}"
                     )
-        
-    
+        for course, section in fixed_sections.items():
+            self.model2.addConstr(
+                self.x2[(course,section)] == 1)
+
+        for course, section in fixed_labs.items():
+            self.model2.addConstr(
+                self.x2[(course,section)] == 1)
 
 
     

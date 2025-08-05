@@ -1,9 +1,304 @@
 {
   "plan": [
     {
-      "number": 7,
+      "number": 1,
+      "credits": 15,
+      "courses": [
+        {
+          "code": "MATH111",
+          "name": "Calculus I",
+          "credits": 4,
+          "prerequisites": [],
+          "unlocks": [
+            "MATH112",
+            "PHYS121"
+          ]
+        },
+        {
+          "code": "COSC114",
+          "name": "Intro to Computing Using Python",
+          "credits": 4,
+          "prerequisites": [],
+          "unlocks": [
+            "COSC101",
+            "ECCE230",
+            "ENGR202"
+          ]
+        },
+        {
+          "code": "ENGL101",
+          "name": "Academic English I",
+          "credits": 3,
+          "prerequisites": [],
+          "unlocks": [
+            "ENGL102"
+          ]
+        },
+        {
+          "code": "GENS101",
+          "name": "Grand Challenges",
+          "credits": 4,
+          "prerequisites": [],
+          "unlocks": []
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "credits": 12,
+      "courses": [
+        {
+          "code": "GENS100",
+          "name": "Academic Development & Success",
+          "credits": 1,
+          "prerequisites": [],
+          "unlocks": [
+            "GENS300"
+          ]
+        },
+        {
+          "code": "ENGL102",
+          "name": "Academic English II",
+          "credits": 3,
+          "prerequisites": [
+            "ENGL101"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "PHYS121",
+          "name": "University Physics I",
+          "credits": 4,
+          "prerequisites": [
+            "MATH111"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "MATH112",
+          "name": "Calculus II",
+          "credits": 4,
+          "prerequisites": [
+            "MATH111"
+          ],
+          "unlocks": [
+            "MATH204",
+            "MATH242",
+            "MATH234"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "credits": 4,
+      "courses": [
+        {
+          "code": "CHEM115",
+          "name": "General Chemistry I",
+          "credits": 4,
+          "prerequisites": [],
+          "unlocks": []
+        }
+      ]
+    },
+    {
+      "number": 4,
       "credits": 16,
       "courses": [
+        {
+          "code": "HUMA123",
+          "name": "UAE studies",
+          "credits": 3,
+          "prerequisites": [],
+          "unlocks": []
+        },
+        {
+          "code": "COSC101",
+          "name": "Foundations of Computer Science",
+          "credits": 3,
+          "prerequisites": [
+            "COSC114"
+          ],
+          "unlocks": [
+            "COSC201",
+            "COSC301"
+          ]
+        },
+        {
+          "code": "ECCE230",
+          "name": "Object-Oriented Programming",
+          "credits": 4,
+          "prerequisites": [
+            "COSC114"
+          ],
+          "unlocks": [
+            "ECCE342",
+            "MATH232",
+            "ECCE336",
+            "COSC330"
+          ]
+        },
+        {
+          "code": "BUXXX",
+          "name": "BUSS course",
+          "credits": 3,
+          "prerequisites": [],
+          "unlocks": []
+        },
+        {
+          "code": "MATH204",
+          "name": "Linear Algebra",
+          "credits": 3,
+          "prerequisites": [
+            "MATH112"
+          ],
+          "unlocks": [
+            "MATH214"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "credits": 18,
+      "courses": [
+        {
+          "code": "ENGR202",
+          "name": "Data Science and AI",
+          "credits": 3,
+          "prerequisites": [
+            "COSC114"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "ECCE342",
+          "name": "Data Structures and Algorithms",
+          "credits": 3,
+          "prerequisites": [
+            "ECCE230"
+          ],
+          "unlocks": [
+            "COSC312"
+          ]
+        },
+        {
+          "code": "MATH242",
+          "name": "Intro to Probability and Statistics",
+          "credits": 3,
+          "prerequisites": [
+            "MATH112"
+          ],
+          "unlocks": [
+            "MATH214"
+          ]
+        },
+        {
+          "code": "COSC201",
+          "name": "Computer Systems Organization",
+          "credits": 3,
+          "prerequisites": [
+            "COSC101"
+          ],
+          "unlocks": [
+            "ECCE354",
+            "ECCE356"
+          ]
+        },
+        {
+          "code": "MATH232",
+          "name": "Engineering Mathematics",
+          "credits": 3,
+          "prerequisites": [
+            "ECCE230"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "MATH234",
+          "name": "Discrete Mathematics",
+          "credits": 3,
+          "prerequisites": [
+            "MATH112"
+          ],
+          "unlocks": [
+            "COSC301"
+          ]
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "credits": 6,
+      "courses": [
+        {
+          "code": "HUMAXXX",
+          "name": "HUMA course",
+          "credits": 3,
+          "prerequisites": [],
+          "unlocks": []
+        },
+        {
+          "code": "MATH214",
+          "name": "Mathematical and Statistical Software",
+          "credits": 3,
+          "prerequisites": [
+            "MATH242",
+            "MATH204"
+          ],
+          "unlocks": []
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "credits": 17,
+      "courses": [
+        {
+          "code": "ECCE356",
+          "name": "Computer Networks",
+          "credits": 4,
+          "prerequisites": [
+            "COSC201"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "GENS300",
+          "name": "Career Preparation",
+          "credits": 1,
+          "prerequisites": [
+            "GENS100"
+          ],
+          "unlocks": [
+            "GENS400"
+          ]
+        },
+        {
+          "code": "COSC301",
+          "name": "Automata",
+          "credits": 3,
+          "prerequisites": [
+            "COSC101",
+            "MATH234"
+          ],
+          "unlocks": [
+            "COSC312",
+            "COSC320"
+          ]
+        },
+        {
+          "code": "ECCE336",
+          "name": "Software Engineering",
+          "credits": 3,
+          "prerequisites": [
+            "ECCE230"
+          ],
+          "unlocks": [
+            "ECCE434"
+          ]
+        },
         {
           "code": "BUSS322",
           "name": "Innovation and Entrepreneurship",
@@ -21,6 +316,23 @@
           "unlocks": [
             "COSC340"
           ]
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "credits": 12,
+      "courses": [
+        {
+          "code": "COSC340",
+          "name": "Computer Security",
+          "credits": 3,
+          "prerequisites": [
+            "ECCE354"
+          ],
+          "unlocks": [
+            "TECH_ELECTIVE_4"
+          ]
         },
         {
           "code": "COSC330",
@@ -35,42 +347,14 @@
           ]
         },
         {
-          "code": "GENS300",
-          "name": "Career Preparation",
-          "credits": 1,
-          "prerequisites": [
-            "GENS100"
-          ],
-          "unlocks": [
-            "GENS400"
-          ]
-        },
-        {
-          "code": "BUXXX",
-          "name": "BUSS course",
+          "code": "ECCE434",
+          "name": "Database Systems",
           "credits": 3,
-          "prerequisites": [],
+          "prerequisites": [
+            "ECCE336"
+          ],
           "unlocks": []
         },
-        {
-          "code": "COSC301",
-          "name": "Automata",
-          "credits": 3,
-          "prerequisites": [
-            "COSC101",
-            "MATH234"
-          ],
-          "unlocks": [
-            "COSC312",
-            "COSC320"
-          ]
-        }
-      ]
-    },
-    {
-      "number": 8,
-      "credits": 12,
-      "courses": [
         {
           "code": "COSC312",
           "name": "Algorithm Design and Analysis",
@@ -83,38 +367,6 @@
             "COSC497",
             "TECH_ELECTIVE_5"
           ]
-        },
-        {
-          "code": "COSC320",
-          "name": "Programming Languages",
-          "credits": 3,
-          "prerequisites": [
-            "COSC301"
-          ],
-          "unlocks": [
-            "TECH_ELECTIVE_2",
-            "TECH_ELECTIVE_3"
-          ]
-        },
-        {
-          "code": "COSC340",
-          "name": "Computer Security",
-          "credits": 3,
-          "prerequisites": [
-            "ECCE354"
-          ],
-          "unlocks": [
-            "TECH_ELECTIVE_4"
-          ]
-        },
-        {
-          "code": "ECCE434",
-          "name": "Database Systems",
-          "credits": 3,
-          "prerequisites": [
-            "COSC336"
-          ],
-          "unlocks": []
         }
       ]
     },
@@ -135,24 +387,14 @@
     },
     {
       "number": 10,
-      "credits": 14,
+      "credits": 12,
       "courses": [
         {
-          "code": "TECH_ELECTIVE_3",
-          "name": "Technical Elective 3",
+          "code": "TECH_ELECTIVE_1",
+          "name": "Technical Elective 1",
           "credits": 3,
           "prerequisites": [
-            "COSC320",
             "COSC330"
-          ],
-          "unlocks": []
-        },
-        {
-          "code": "ECCE356",
-          "name": "Computer Networks",
-          "credits": 4,
-          "prerequisites": [
-            "COSC201"
           ],
           "unlocks": []
         },
@@ -168,13 +410,16 @@
           ]
         },
         {
-          "code": "GENS400",
-          "name": "Enhancing Employability & Readiness",
-          "credits": 1,
+          "code": "COSC320",
+          "name": "Programming Languages",
+          "credits": 3,
           "prerequisites": [
-            "GENS300"
+            "COSC301"
           ],
-          "unlocks": []
+          "unlocks": [
+            "TECH_ELECTIVE_2",
+            "TECH_ELECTIVE_3"
+          ]
         },
         {
           "code": "TECH_ELECTIVE_5",
@@ -189,23 +434,23 @@
     },
     {
       "number": 11,
-      "credits": 12,
+      "credits": 13,
       "courses": [
         {
-          "code": "TECH_ELECTIVE_1",
-          "name": "Technical Elective 1",
+          "code": "TECH_ELECTIVE_4",
+          "name": "Technical Elective 4",
           "credits": 3,
           "prerequisites": [
-            "COSC330"
+            "COSC340"
           ],
           "unlocks": []
         },
         {
-          "code": "TECH_ELECTIVE_2",
-          "name": "Technical Elective 2",
-          "credits": 3,
+          "code": "GENS400",
+          "name": "Enhancing Employability & Readiness",
+          "credits": 1,
           "prerequisites": [
-            "COSC320"
+            "GENS300"
           ],
           "unlocks": []
         },
@@ -219,11 +464,21 @@
           "unlocks": []
         },
         {
-          "code": "TECH_ELECTIVE_4",
-          "name": "Technical Elective 4",
+          "code": "TECH_ELECTIVE_2",
+          "name": "Technical Elective 2",
           "credits": 3,
           "prerequisites": [
-            "COSC340"
+            "COSC320"
+          ],
+          "unlocks": []
+        },
+        {
+          "code": "TECH_ELECTIVE_3",
+          "name": "Technical Elective 3",
+          "credits": 3,
+          "prerequisites": [
+            "COSC320",
+            "COSC330"
           ],
           "unlocks": []
         }
@@ -246,73 +501,49 @@
     }
   ],
   "major_index": 0,
-  "completed_raw": "GENS101,ENGL101,MATH111,CHEM115,GENS100,COSC336,COSC101,ECCE230,MATH204,MATH242,ENGR202,ENGL102,MATH112,PHYS121,COSC114,COSC201,ECCE342,MATH232,MATH214,MATH234,HUMAXXX,HUMA123",
-  "completed_semesters": 6,
-  "total_semesters": 6,
-  "total_courses": 21,
-  "total_credits": 56,
-  "avg_credits_per_semester": 9.33,
+  "completed_raw": "",
+  "completed_semesters": 0,
+  "total_semesters": 12,
+  "total_courses": 43,
+  "total_credits": 127,
+  "avg_credits_per_semester": 10.58,
   "first_semester_courses": [
     {
-      "code": "BUSS322",
-      "name": "Innovation and Entrepreneurship",
-      "credits": 3,
+      "code": "MATH111",
+      "name": "Calculus I",
+      "credits": 4,
       "prerequisites": [],
-      "unlocks": []
-    },
-    {
-      "code": "ECCE354",
-      "name": "Operating Systems",
-      "credits": 3,
-      "prerequisites": [
-        "COSC201"
-      ],
       "unlocks": [
-        "COSC340"
+        "MATH112",
+        "PHYS121"
       ]
     },
     {
-      "code": "COSC330",
-      "name": "Artificial Intelligence",
-      "credits": 3,
-      "prerequisites": [
-        "ECCE230"
-      ],
-      "unlocks": [
-        "TECH_ELECTIVE_1",
-        "TECH_ELECTIVE_3"
-      ]
-    },
-    {
-      "code": "GENS300",
-      "name": "Career Preparation",
-      "credits": 1,
-      "prerequisites": [
-        "GENS100"
-      ],
-      "unlocks": [
-        "GENS400"
-      ]
-    },
-    {
-      "code": "BUXXX",
-      "name": "BUSS course",
-      "credits": 3,
+      "code": "COSC114",
+      "name": "Intro to Computing Using Python",
+      "credits": 4,
       "prerequisites": [],
-      "unlocks": []
-    },
-    {
-      "code": "COSC301",
-      "name": "Automata",
-      "credits": 3,
-      "prerequisites": [
+      "unlocks": [
         "COSC101",
-        "MATH234"
-      ],
-      "unlocks": [
-        "COSC312",
-        "COSC320"
+        "ECCE230",
+        "ENGR202"
       ]
+    },
+    {
+      "code": "ENGL101",
+      "name": "Academic English I",
+      "credits": 3,
+      "prerequisites": [],
+      "unlocks": [
+        "ENGL102"
+      ]
+    },
+    {
+      "code": "GENS101",
+      "name": "Grand Challenges",
+      "credits": 4,
+      "prerequisites": [],
+      "unlocks": []
     }
   ]
 }

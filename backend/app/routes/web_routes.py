@@ -151,6 +151,7 @@ def next_semester():
         return render_template(
             'schedule.html',
             all_timetables=timetable_data['timetables'],
+            timetable_courses=timetable_data['timetables'][0] if timetable_data['timetables'] else [],
             solution_count=timetable_data['solution_count'],
             num_solutions=timetable_data['num_solutions'],
             major_index=major_index,
